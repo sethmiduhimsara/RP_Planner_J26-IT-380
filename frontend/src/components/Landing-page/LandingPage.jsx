@@ -1,7 +1,7 @@
 import React from 'react';
 import './LandingPage.css';
 
-export default function LandingPage() {
+export default function LandingPage({ onNavigateToDashboard }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -31,12 +31,22 @@ export default function LandingPage() {
           </nav>
 
           <div className="lp-nav-actions">
-            <a href="#signin" className="lp-btn lp-btn-secondary">
+            <button
+              type="button"
+              onClick={onNavigateToDashboard}
+              className="lp-btn lp-btn-secondary"
+              title="Open Dashboard"
+            >
               <i className="fa-solid fa-arrow-right-to-bracket"></i> Sign In
-            </a>
-            <a href="#modules" className="lp-btn lp-btn-primary">
-              <i className="fa-solid fa-arrow-right"></i> Explore System
-            </a>
+            </button>
+            <button
+              type="button"
+              onClick={onNavigateToDashboard}
+              className="lp-btn lp-btn-primary"
+              title="Open Dashboard"
+            >
+              <i className="fa-solid fa-gauge-high"></i> Dashboard
+            </button>
           </div>
         </div>
       </header>
