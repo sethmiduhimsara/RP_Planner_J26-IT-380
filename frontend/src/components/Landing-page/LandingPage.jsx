@@ -31,9 +31,9 @@ export default function LandingPage() {
           </nav>
 
           <div className="lp-nav-actions">
-            <span className="lp-badge-project">
-              <i className="fa-solid fa-graduation-cap"></i> SLIIT J26-IT-380
-            </span>
+            <a href="#signin" className="lp-btn lp-btn-secondary">
+              <i className="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+            </a>
             <a href="#modules" className="lp-btn lp-btn-primary">
               <i className="fa-solid fa-arrow-right"></i> Explore System
             </a>
