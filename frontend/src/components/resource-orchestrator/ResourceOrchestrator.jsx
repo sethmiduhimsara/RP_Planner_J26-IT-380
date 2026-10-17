@@ -1,9 +1,10 @@
 import React from 'react';
+import PoolOrchestrator from './PoolOrchestrator';
 
 export default function ResourceOrchestrator() {
   return (
     <div>
-      <h1>This is test page...</h1>
+      <PoolOrchestrator />
     </div>
   );
 }
