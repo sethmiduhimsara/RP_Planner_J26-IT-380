@@ -1,17 +1,21 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import LandingPage from './components/Landing-page/LandingPage';
+import Dashboard from './components/Dashboard/Dashboard';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  // Navigation state: 'landing' or 'dashboard'
+  const [currentView, setCurrentView] = useState('landing');
 
   return (
-    <>
-      <h1>This is a simple React app...</h1>
-    </>
-  )
+    <div className="app-container">
+      {currentView === 'landing' ? (
+        <LandingPage onNavigateToDashboard={() => setCurrentView('dashboard')} />
+      ) : (
+        <Dashboard onNavigateHome={() => setCurrentView('landing')} />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
