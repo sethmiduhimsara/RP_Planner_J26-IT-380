@@ -1,17 +1,13 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React from 'react';
+import LandingPage from './components/Landing-page/LandingPage';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <h1>This is a simple React app...</h1>
-    </>
-  )
+    <div className="app-container">
+      <LandingPage />
+    </div>
+  );
 }
 
-export default App
+export default App;
