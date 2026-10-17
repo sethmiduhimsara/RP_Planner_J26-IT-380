@@ -1,17 +1,13 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+// NOTE FOR TEAMMATES: This file is temporarily modified for local development
+// of the AI Leak & Evaporation component (Phase 1 demo).
+// Before merging to dev, coordinate a shared routing/layout approach with the team.
+// All teammates' components will be imported here once routing is agreed upon.
+
 import './App.css'
+import LeakEvaporationDashboard from './components/ai-leak-evaporation/LeakEvaporationDashboard.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <h1>This is a simple React app...</h1>
-    </>
-  )
+  return <LeakEvaporationDashboard />
 }
 
 export default App
