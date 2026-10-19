@@ -139,7 +139,7 @@ export default function PoolOrchestratorWhatsAppChat() {
         className="po-wa-fab"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="WhatsApp Customer Chats"
-        title="WhatsApp Customer Chats (Live)"
+        title="WhatsApp Customer Chats (Live Telemetry)"
       >
         <svg
           viewBox="0 0 32 32"
@@ -147,6 +147,7 @@ export default function PoolOrchestratorWhatsAppChat() {
           height="32"
           fill="currentColor"
           className="po-wa-fab-icon"
+          aria-hidden="true"
         >
           <path d="M16 2a13.9 13.9 0 0 0-12 21L2 30l7.2-1.9A14 14 0 1 0 16 2zm0 25.5a11.5 11.5 0 0 1-5.9-1.6l-.4-.3-4.3 1.1 1.2-4.2-.3-.4A11.5 11.5 0 1 1 16 27.5zm6.3-8.6c-.3-.2-2-.9-2.3-1s-.5-.2-.7.2-.8 1-1 1.2-.4.3-.7.1a8.8 8.8 0 0 1-2.6-1.6 9.7 9.7 0 0 1-1.8-2.3c-.2-.3 0-.5.2-.7s.3-.4.5-.6l.3-.5c.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.3 1.4 3.5 2.4 3.7 5.8 5.1c.8.4 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6s-.3-.2-.6-.4z" />
         </svg>
@@ -175,7 +176,10 @@ export default function PoolOrchestratorWhatsAppChat() {
                     }}
                     title="Back to all customer chats"
                   >
-                    ←
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="19" y1="12" x2="5" y2="12" />
+                      <polyline points="12 19 5 12 12 5" />
+                    </svg>
                   </button>
                   <div className="po-wa-avatar">
                     {(selectedCustomer.customer_name || 'C').charAt(0).toUpperCase()}
@@ -188,12 +192,12 @@ export default function PoolOrchestratorWhatsAppChat() {
               ) : (
                 <>
                   <div className="po-wa-avatar main-brand">
-                    <svg viewBox="0 0 32 32" width="22" height="22" fill="#ffffff">
+                    <svg viewBox="0 0 32 32" width="22" height="22" fill="#ffffff" aria-hidden="true">
                       <path d="M16 2a13.9 13.9 0 0 0-12 21L2 30l7.2-1.9A14 14 0 1 0 16 2zm0 25.5a11.5 11.5 0 0 1-5.9-1.6l-.4-.3-4.3 1.1 1.2-4.2-.3-.4A11.5 11.5 0 1 1 16 27.5z" />
                     </svg>
                   </div>
                   <div className="po-wa-header-info">
-                    <h4>WhatsApp Customer Chats</h4>
+                    <h4>WhatsApp Customer Inquiries</h4>
                     <span>Meta Cloud API · +94 76 579 0015</span>
                   </div>
                 </>
@@ -213,7 +217,10 @@ export default function PoolOrchestratorWhatsAppChat() {
                 }}
                 title="Refresh messages"
               >
-                🔄
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
               </button>
 
               {selectedCustomer && (
@@ -224,7 +231,11 @@ export default function PoolOrchestratorWhatsAppChat() {
                   className="po-wa-icon-btn"
                   title="Open directly in WhatsApp Web"
                 >
-                  ↗
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
               )}
 
@@ -234,7 +245,10 @@ export default function PoolOrchestratorWhatsAppChat() {
                 onClick={() => setIsOpen(false)}
                 title="Close chat window"
               >
-                ✕
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
           </div>
@@ -263,8 +277,12 @@ export default function PoolOrchestratorWhatsAppChat() {
                   </div>
                 ) : filteredConversations.length === 0 ? (
                   <div className="po-wa-empty">
-                    <div className="po-wa-empty-icon">💬</div>
-                    <h4>No Customer Chats Yet</h4>
+                    <div className="po-wa-empty-icon">
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </div>
+                    <h4>No Customer Inquiries Yet</h4>
                     <p>
                       When bathers send a WhatsApp message to <strong>+94 76 579 0015</strong>, their chat will automatically appear here in real-time.
                     </p>
@@ -339,7 +357,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                             }`}
                           >
                             <div className="po-wa-sender-label">
-                              {m.sender_role === 'manager' ? '👤 Manager' : '🤖 AI Automated Pool Bot'}
+                              {m.sender_role === 'manager' ? 'Facility Manager' : 'Automated Pool Assistant'}
                             </div>
                             <div
                               className="po-wa-bubble-text formatted"
@@ -366,7 +384,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                     onClick={() => handleSendMessage('1')}
                     title="Send Current Condition"
                   >
-                    🏊 1. Current Condition
+                    1. Current Condition
                   </button>
                   <button
                     type="button"
@@ -374,7 +392,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                     onClick={() => handleSendMessage('2')}
                     title="Send Future Demand"
                   >
-                    📊 2. Future Demand
+                    2. Future Demand
                   </button>
                   <button
                     type="button"
@@ -382,7 +400,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                     onClick={() => handleSendMessage('3')}
                     title="Send Manager Contact"
                   >
-                    📞 3. Contact to Manager
+                    3. Contact Manager
                   </button>
                   <button
                     type="button"
@@ -390,13 +408,18 @@ export default function PoolOrchestratorWhatsAppChat() {
                     onClick={() => handleSendMessage('0')}
                     title="Send Main Menu"
                   >
-                    👋 Main Menu
+                    Main Menu
                   </button>
                 </div>
 
                 {sendError && (
                   <div className="po-wa-send-error">
-                    ⚠️ {sendError}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{sendError}</span>
                   </div>
                 )}
 
@@ -424,7 +447,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                     {sending ? (
                       '…'
                     ) : (
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
                     )}
