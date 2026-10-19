@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { fetchSettings, saveSettings, fetchWhatsAppStatus, sendWhatsAppMessage } from './services/poolOrchestratorApi'
+import { fetchSettings, saveSettings } from './services/poolOrchestratorApi'
 
 const PRESETS = [
   {
+    id: 'boutique',
     name: 'Small / Hotel / Therapy Pool',
-    icon: '🏊',
-    description: 'Boutique or hotel facility with lower swimmer volume (Max ~30 bathers)',
+    category: 'Boutique Facility',
+    description: 'Designed for boutique hotels, wellness centers, or hydrotherapy pools with lower swimmer volumes (Max ~30 bathers).',
     values: {
       low_demand_max: 8,
       moderate_demand_max: 18,
@@ -16,9 +17,10 @@ const PRESETS = [
     },
   },
   {
+    id: 'community',
     name: 'Standard Community / Club Pool',
-    icon: '🏟️',
-    description: 'Standard 25m recreational public facility (Max ~50-60 bathers)',
+    category: 'Community Standard',
+    description: 'Standard 25m recreational or athletic club pool accommodating regular public swimming sessions (Max ~50–60 bathers).',
     values: {
       low_demand_max: 15,
       moderate_demand_max: 30,
@@ -29,9 +31,10 @@ const PRESETS = [
     },
   },
   {
-    name: 'Olympic / High-Capacity Aquatic Centre',
-    icon: '🌊',
-    description: 'Full 50m competition venue or waterpark (High swimmer throughput)',
+    id: 'olympic',
+    name: 'Olympic / Aquatic Stadium',
+    category: 'High-Capacity Stadium',
+    description: 'Full 50m competition venue, waterpark, or multi-lane municipal stadium with heavy bather throughput (Max 100+ bathers).',
     values: {
       low_demand_max: 30,
       moderate_demand_max: 65,
@@ -42,6 +45,36 @@ const PRESETS = [
     },
   },
 ]
+
+function PresetIcon({ id }) {
+  if (id === 'boutique') {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      </svg>
+    )
+  }
+  if (id === 'community') {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <line x1="3" y1="9" x2="21" y2="9" />
+        <line x1="3" y1="15" x2="21" y2="15" />
+        <line x1="9" y1="3" x2="9" y2="21" />
+        <line x1="15" y1="3" x2="15" y2="21" />
+      </svg>
+    )
+  }
+  // Olympic
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+    </svg>
+  )
+}
 
 export default function PoolOrchestratorSettings({ onBackToDashboard, onSettingsApplied }) {
   const [formData, setFormData] = useState({
@@ -61,14 +94,6 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState(null)
   const [validationError, setValidationError] = useState(null)
-
-  // WhatsApp Assistant integration state
-  const [waStatus, setWaStatus] = useState(null)
-  const [waMessages, setWaMessages] = useState([])
-  const [testPhone, setTestPhone] = useState('94743158325')
-  const [testMessage, setTestMessage] = useState('Hello! Colombo Aquatic Centre Main Pool is open today until 10:00 PM.')
-  const [sendingWa, setSendingWa] = useState(false)
-  const [waFeedback, setWaFeedback] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -91,16 +116,6 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
         }
       } catch (err) {
         console.warn('Could not load current settings from server:', err.message)
-      }
-
-      try {
-        const waData = await fetchWhatsAppStatus()
-        if (isMounted && waData) {
-          setWaStatus(waData.status)
-          setWaMessages(waData.messages || [])
-        }
-      } catch (waErr) {
-        console.warn('Could not load WhatsApp integration status:', waErr.message)
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -174,7 +189,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
 
       setFeedback({
         type: 'success',
-        message: 'Settings successfully saved! Operational thresholds, filtration bulb logic, and forecast badges updated.',
+        message: 'Settings successfully applied! Operational thresholds, filtration relay actuation bands, and forecasting models updated.',
       })
 
       if (onSettingsApplied) {
@@ -183,36 +198,10 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Failed to save settings. Please try again.',
+        message: err.message || 'Failed to save settings. Please check server connection.',
       })
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleSendTestWhatsApp = async (e) => {
-    if (e && e.preventDefault) e.preventDefault()
-    if (!testPhone || !testMessage) return
-    setSendingWa(true)
-    setWaFeedback(null)
-    try {
-      await sendWhatsAppMessage(testPhone, testMessage)
-      setWaFeedback({
-        type: 'success',
-        text: `Message dispatched successfully to ${testPhone} via Meta Cloud API!`,
-      })
-      const updated = await fetchWhatsAppStatus()
-      if (updated) {
-        setWaStatus(updated.status)
-        setWaMessages(updated.messages || [])
-      }
-    } catch (err) {
-      setWaFeedback({
-        type: 'error',
-        text: `Failed to dispatch WhatsApp message: ${err.message}`,
-      })
-    } finally {
-      setSendingWa(false)
     }
   }
 
@@ -224,36 +213,60 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
     <div className="po-settings-page">
       {/* Top Banner Navigation */}
       <div className="po-settings-header">
-        <div>
+        <div className="po-settings-header-left">
           <button className="po-btn-back" onClick={onBackToDashboard} title="Back to Operations Dashboard">
-            ← Back to Dashboard
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            <span>Back to Dashboard</span>
           </button>
           <h1 className="po-settings-title">Manager Operational Settings</h1>
           <p className="po-settings-subtitle">
-            Configure custom swimmer demand limits, 4-bulb filtration actuation bands, and facility safety policies
-            suited to your pool size and bather density.
+            Configure custom swimmer demand limits, 4-stage filtration relay actuation bands, and facility safety policies
+            suited to your pool volume and bather density.
           </p>
         </div>
         <div className="po-settings-badge">
-          <span>⚙️ FACILITY CONFIGURATION</span>
+          <span>FACILITY CONFIGURATION</span>
         </div>
       </div>
 
       {feedback && (
         <div className={`po-settings-alert ${feedback.type}`}>
-          {feedback.type === 'success' ? '✓ ' : '⚠ '}
-          {feedback.message}
+          <div className="po-alert-content">
+            {feedback.type === 'success' ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            )}
+            <span>{feedback.message}</span>
+          </div>
         </div>
       )}
 
       {validationError && (
         <div className="po-settings-alert error">
-          ⚠ {validationError}
+          <div className="po-alert-content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>{validationError}</span>
+          </div>
         </div>
       )}
 
       {loading ? (
         <div className="po-loading-state">
+          <div className="po-inline-spinner" />
           <p>Loading operational settings from database...</p>
         </div>
       ) : (
@@ -261,13 +274,18 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
           {/* Section 1: Quick Presets */}
           <section className="po-settings-card">
             <div className="po-card-head">
-              <h3>Facility Size Presets (Quick Setup)</h3>
-              <p>Select a pre-configured template that matches your swimming pool capacity:</p>
+              <h3>Facility Size Templates</h3>
+              <p>Choose an operational profile matching your swimming pool scale and bather throughput:</p>
             </div>
             <div className="po-preset-grid">
               {PRESETS.map((p) => (
-                <div key={p.name} className="po-preset-card">
-                  <div className="po-preset-icon">{p.icon}</div>
+                <div key={p.id} className="po-preset-card">
+                  <div className="po-preset-top">
+                    <div className="po-preset-icon-wrap">
+                      <PresetIcon id={p.id} />
+                    </div>
+                    <span className="po-preset-category">{p.category}</span>
+                  </div>
                   <h4>{p.name}</h4>
                   <p>{p.description}</p>
                   <div className="po-preset-tags">
@@ -287,13 +305,13 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
             </div>
           </section>
 
-          {/* Section 2: Swimmer Demand & Bulb Thresholds (Core User Request) */}
+          {/* Section 2: Swimmer Demand & Relay Actuation Thresholds */}
           <section className="po-settings-card highlight">
             <div className="po-card-head">
-              <h3>Swimmer Demand &amp; Filtration Bulb Thresholds</h3>
+              <h3>Swimmer Demand &amp; Relay Actuation Thresholds</h3>
               <p>
-                Define the swimmer counts that trigger each demand category and automatically light up the corresponding
-                filtration relay bulbs:
+                Define the swimmer thresholds that classify bather density and actuate the corresponding
+                stages of the 4-channel filtration relay board:
               </p>
             </div>
 
@@ -302,90 +320,99 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
               <div className="po-threshold-box low">
                 <div className="po-th-header">
                   <span className="po-th-badge low">Low Demand</span>
-                  <span className="po-bulb-tag">💡 1 Bulb ON</span>
+                  <span className="po-relay-stage-tag">Stage 1 (R1 Active)</span>
                 </div>
                 <label htmlFor="low_demand_max">Upper Swimmer Limit (&lt; X swimmers):</label>
-                <input
-                  id="low_demand_max"
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={formData.low_demand_max}
-                  onChange={(e) => handleChange('low_demand_max', e.target.value)}
-                  required
-                />
-                <span className="po-th-hint">0 to {lowVal - 1} swimmers (Mandatory baseline circulation)</span>
+                <div className="po-input-with-unit">
+                  <input
+                    id="low_demand_max"
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={formData.low_demand_max}
+                    onChange={(e) => handleChange('low_demand_max', e.target.value)}
+                    required
+                  />
+                  <span className="po-unit-suffix">swimmers</span>
+                </div>
+                <span className="po-th-hint">0 to {lowVal - 1} swimmers · Mandatory baseline circulation</span>
               </div>
 
               {/* Moderate Demand */}
               <div className="po-threshold-box moderate">
                 <div className="po-th-header">
                   <span className="po-th-badge moderate">Moderate Demand</span>
-                  <span className="po-bulb-tag">💡💡 2 Bulbs ON</span>
+                  <span className="po-relay-stage-tag">Stage 2 (R1-R2 Active)</span>
                 </div>
                 <label htmlFor="moderate_demand_max">Upper Swimmer Limit (to Y swimmers):</label>
-                <input
-                  id="moderate_demand_max"
-                  type="number"
-                  min={lowVal + 1}
-                  max="500"
-                  value={formData.moderate_demand_max}
-                  onChange={(e) => handleChange('moderate_demand_max', e.target.value)}
-                  required
-                />
-                <span className="po-th-hint">{lowVal} to {modVal} swimmers (Standard daily circulation)</span>
+                <div className="po-input-with-unit">
+                  <input
+                    id="moderate_demand_max"
+                    type="number"
+                    min={lowVal + 1}
+                    max="500"
+                    value={formData.moderate_demand_max}
+                    onChange={(e) => handleChange('moderate_demand_max', e.target.value)}
+                    required
+                  />
+                  <span className="po-unit-suffix">swimmers</span>
+                </div>
+                <span className="po-th-hint">{lowVal} to {modVal} swimmers · Standard daily circulation</span>
               </div>
 
               {/* High Demand */}
               <div className="po-threshold-box high">
                 <div className="po-th-header">
                   <span className="po-th-badge high">High Demand</span>
-                  <span className="po-bulb-tag">💡💡💡 3 Bulbs ON</span>
+                  <span className="po-relay-stage-tag">Stage 3 (R1-R3 Active)</span>
                 </div>
                 <label htmlFor="high_demand_max">Upper Swimmer Limit (to Z swimmers):</label>
-                <input
-                  id="high_demand_max"
-                  type="number"
-                  min={modVal + 1}
-                  max="500"
-                  value={formData.high_demand_max}
-                  onChange={(e) => handleChange('high_demand_max', e.target.value)}
-                  required
-                />
-                <span className="po-th-hint">{modVal + 1} to {highVal} swimmers (Elevated bather circulation)</span>
+                <div className="po-input-with-unit">
+                  <input
+                    id="high_demand_max"
+                    type="number"
+                    min={modVal + 1}
+                    max="500"
+                    value={formData.high_demand_max}
+                    onChange={(e) => handleChange('high_demand_max', e.target.value)}
+                    required
+                  />
+                  <span className="po-unit-suffix">swimmers</span>
+                </div>
+                <span className="po-th-hint">{modVal + 1} to {highVal} swimmers · Elevated turnover capacity</span>
               </div>
 
               {/* Very High Demand */}
               <div className="po-threshold-box very-high">
                 <div className="po-th-header">
                   <span className="po-th-badge very-high">Very High Demand</span>
-                  <span className="po-bulb-tag">💡💡💡💡 4 Bulbs ON</span>
+                  <span className="po-relay-stage-tag">Stage 4 (All 4 Relays)</span>
                 </div>
                 <label>Automatic Trigger Level:</label>
                 <div className="po-static-value">&gt; {highVal} swimmers</div>
-                <span className="po-th-hint">{highVal + 1}+ swimmers (Maximum turnover, requires manager review)</span>
+                <span className="po-th-hint">{highVal + 1}+ swimmers · Maximum turnover load (Manager alert)</span>
               </div>
             </div>
 
             {/* Visual Capacity Preview Bar */}
             <div className="po-capacity-preview">
-              <label>Live Operational Demand Preview:</label>
+              <label>Continuous Capacity Allocation Preview:</label>
               <div className="po-preview-bar">
                 <div className="po-bar-seg low" style={{ flex: lowVal }}>
                   <span>Low (&lt;{lowVal})</span>
-                  <small>1 Bulb</small>
+                  <small>Stage 1 · 1 Relay</small>
                 </div>
                 <div className="po-bar-seg moderate" style={{ flex: Math.max(5, modVal - lowVal) }}>
                   <span>Moderate ({lowVal}–{modVal})</span>
-                  <small>2 Bulbs</small>
+                  <small>Stage 2 · 2 Relays</small>
                 </div>
                 <div className="po-bar-seg high" style={{ flex: Math.max(5, highVal - modVal) }}>
                   <span>High ({modVal + 1}–{highVal})</span>
-                  <small>3 Bulbs</small>
+                  <small>Stage 3 · 3 Relays</small>
                 </div>
                 <div className="po-bar-seg very-high" style={{ flex: 15 }}>
                   <span>Very High (&gt;{highVal})</span>
-                  <small>4 Bulbs</small>
+                  <small>Stage 4 · 4 Relays</small>
                 </div>
               </div>
             </div>
@@ -395,7 +422,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
           <section className="po-settings-card">
             <div className="po-card-head">
               <h3>Facility Safety &amp; Staffing Policies</h3>
-              <p>Configure aquatic safety ratios, minimum guard floors, and facility operational hours:</p>
+              <p>Configure aquatic safety ratios, minimum lifeguard roster floors, and facility operational hours:</p>
             </div>
 
             <div className="po-form-row">
@@ -421,7 +448,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   onChange={(e) => handleChange('swimmer_to_lifeguard_ratio', e.target.value)}
                   required
                 />
-                <span className="po-field-sub">1 lifeguard per {formData.swimmer_to_lifeguard_ratio} swimmers</span>
+                <span className="po-field-sub">1 lifeguard deployed per {formData.swimmer_to_lifeguard_ratio} active swimmers</span>
               </div>
             </div>
 
@@ -437,11 +464,11 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   onChange={(e) => handleChange('min_lifeguards', e.target.value)}
                   required
                 />
-                <span className="po-field-sub">Never deploy fewer than this count during open hours</span>
+                <span className="po-field-sub">Never deploy fewer than this count during facility open hours</span>
               </div>
 
               <div className="po-form-group">
-                <label htmlFor="min_operational_staff">Minimum Ops/Desk Staff:</label>
+                <label htmlFor="min_operational_staff">Minimum Ops / Deck Staff:</label>
                 <input
                   id="min_operational_staff"
                   type="number"
@@ -451,7 +478,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   onChange={(e) => handleChange('min_operational_staff', e.target.value)}
                   required
                 />
-                <span className="po-field-sub">Floor for check-in and facility operations</span>
+                <span className="po-field-sub">Floor for check-in reception, equipment, and facility operations</span>
               </div>
             </div>
 
@@ -509,177 +536,10 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   required
                 />
                 <span className="po-field-sub">
-                  Automatically retrains the ML model every time {formData.auto_retrain_interval} new hourly records accumulate in the database.
+                  Automatically retrains the ML model every time {formData.auto_retrain_interval} new hourly sensor records accumulate in Supabase.
                 </span>
               </div>
             </div>
-          </section>
-
-          {/* Section 5: Customer WhatsApp Assistant */}
-          <section className="po-settings-card">
-            <div className="po-card-head">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div>
-                  <h3>Customer WhatsApp Assistant (Meta Cloud API)</h3>
-                  <p>Automated 24/7 conversational pool bather assistant for customer inquiries.</p>
-                </div>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '4px 10px',
-                    borderRadius: '999px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    background: waStatus?.enabled ? '#ecfdf5' : '#fef2f2',
-                    color: waStatus?.enabled ? '#059669' : '#dc2626',
-                    border: `1px solid ${waStatus?.enabled ? '#a7f3d0' : '#fecaca'}`,
-                  }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: waStatus?.enabled ? '#10b981' : '#ef4444' }} />
-                  {waStatus?.enabled ? 'Meta API Connected' : 'Webhook Disconnected'}
-                </span>
-              </div>
-            </div>
-
-            {/* Meta Configuration Info */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '14px',
-                marginBottom: '16px',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '12px',
-                fontSize: '12px',
-              }}
-            >
-              <div>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Phone Number ID:</span>
-                <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                  {waStatus?.phoneNumberId || '1406310829235882'}
-                </div>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Webhook Endpoint:</span>
-                <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>
-                  {waStatus?.webhookEndpoint || '/api/pool-orchestrator/whatsapp/webhook'}
-                </div>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Verification Token:</span>
-                <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#059669' }}>
-                  pool_orchestrator_verify_token_2026
-                </div>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Messages Handled:</span>
-                <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                  📥 {waStatus?.messagesReceived ?? 0} received / 📤 {waStatus?.repliesSent ?? 0} auto-replied
-                </div>
-              </div>
-            </div>
-
-            {/* Live Test Sender */}
-            <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '14px', marginBottom: '16px' }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                Dispatch Test WhatsApp Message
-              </h4>
-              <div className="po-form-row">
-                <div className="po-form-group">
-                  <label htmlFor="test_wa_phone">Destination Phone Number (with Country Code):</label>
-                  <input
-                    id="test_wa_phone"
-                    type="text"
-                    placeholder="e.g. 94743158325"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                  />
-                  <span className="po-field-sub">Sri Lanka format: 94XXXXXXXXX (no + sign)</span>
-                </div>
-                <div className="po-form-group">
-                  <label htmlFor="test_wa_msg">Test Message Body:</label>
-                  <input
-                    id="test_wa_msg"
-                    type="text"
-                    value={testMessage}
-                    onChange={(e) => setTestMessage(e.target.value)}
-                  />
-                  <span className="po-field-sub">Custom notification or announcement text</span>
-                </div>
-              </div>
-
-              {waFeedback && (
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    marginBottom: '12px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    background: waFeedback.type === 'success' ? '#f0fdf4' : '#fef2f2',
-                    color: waFeedback.type === 'success' ? '#15803d' : '#b91c1c',
-                    border: `1px solid ${waFeedback.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-                  }}
-                >
-                  {waFeedback.text}
-                </div>
-              )}
-
-              <button
-                type="button"
-                className="po-btn-secondary"
-                disabled={sendingWa || !testPhone || !testMessage}
-                onClick={handleSendTestWhatsApp}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-              >
-                {sendingWa ? 'Sending...' : '📲 Send WhatsApp Test Message'}
-              </button>
-            </div>
-
-            {/* Recent Conversations Table */}
-            {waMessages && waMessages.length > 0 && (
-              <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '14px' }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                  Recent Customer Inquiries &amp; Automated Replies ({waMessages.length})
-                </h4>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                    <thead>
-                      <tr style={{ background: '#f1f5f9', textAlign: 'left', color: '#475569' }}>
-                        <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Customer</th>
-                        <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Phone</th>
-                        <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Customer Message</th>
-                        <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Automated Reply Dispatched</th>
-                        <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {waMessages.slice(0, 5).map((m) => (
-                        <tr key={m.id || m.wa_message_id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>{m.customer_name || 'Customer'}</td>
-                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#64748b' }}>{m.sender_phone}</td>
-                          <td style={{ padding: '8px 10px', color: '#1e293b' }}>
-                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px' }}>
-                              {m.incoming_text}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 10px', color: '#334155', maxWidth: '300px', whiteSpace: 'pre-wrap' }}>
-                            {m.reply_text ? m.reply_text.split('\n')[0] : '—'}
-                          </td>
-                          <td style={{ padding: '8px 10px', color: '#64748b', fontSize: '11px', whiteSpace: 'nowrap' }}>
-                            {m.received_at ? new Date(m.received_at).toLocaleTimeString() : 'Just now'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </section>
 
           {/* Form Action Buttons */}
@@ -689,7 +549,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
               className="po-btn-secondary"
               onClick={onBackToDashboard}
             >
-              Cancel / Back to Dashboard
+              Cancel
             </button>
 
             <button
@@ -697,7 +557,19 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
               className="po-btn-primary"
               disabled={saving}
             >
-              {saving ? 'Saving & Applying…' : '✓ Save & Apply Settings'}
+              {saving ? (
+                <>
+                  <div className="po-btn-spinner" />
+                  <span>Applying Settings…</span>
+                </>
+              ) : (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Save &amp; Apply Settings</span>
+                </>
+              )}
             </button>
           </div>
         </form>
