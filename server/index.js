@@ -7,6 +7,7 @@ require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mqtt = require('mqtt'); // <-- Added MQTT library for Umi's live stream
 
 // energy-optimization
 const { checkHeatingOptimization } = require('./src/energy-optimization/optimizationController');
@@ -25,6 +26,31 @@ app.use(express.urlencoded({ extended: true }));
 
 // Component Mounts - Pool Orchestrator
 app.use('/api/pool-orchestrator', poolOrchestratorRouter);
+
+// 🌍 UMI'S LIVE HARDWARE DATA STREAM 🌍
+const umiMqtt = mqtt.connect('mqtt://broker.hivemq.com:1883');
+let liveSensorData = { ambientTemp: 0, humidity: 0, currentPoolTemp: 0 };
+
+// Listen to a custom topic just for Umi's UI!
+umiMqtt.on('connect', () => {
+    console.log("[Express] Umi's Live Hardware MQTT Connected to Cloud! ☁️");
+    umiMqtt.subscribe('ecopool/umi/sensors'); 
+});
+
+// Update the variables the millisecond the ESP32 sends a new reading
+umiMqtt.on('message', (topic, message) => {
+    try {
+        const data = JSON.parse(message.toString());
+        liveSensorData = { ...liveSensorData, ...data };
+    } catch (e) {
+        console.error("MQTT Parse Error:", e);
+    }
+});
+
+// Endpoint to Send Live Data to the React Dashboard
+app.get('/api/energy-optimization/live-sensors', (req, res) => {
+    res.json(liveSensorData);
+});
 
 // ENERGY OPTIMIZATION API ENDPOINT 
 app.post('/api/energy-optimization/check', async (req, res) => {
@@ -71,6 +97,7 @@ const server = app.listen(PORT, () => {
   console.log(`[Express] Server running on http://localhost:${PORT}`);
   console.log(`[Express] Pool Orchestrator mounted at http://localhost:${PORT}/api/pool-orchestrator`);
   console.log(`[Express] Umi's AI Engine mounted at http://localhost:${PORT}/api/energy-optimization/check`);
+  console.log(`[Express] Umi's Live Data mounted at http://localhost:${PORT}/api/energy-optimization/live-sensors`);
 
   // Start background MQTT subscriber for ESP32 sensor telemetry
   try {
@@ -84,6 +111,7 @@ const server = app.listen(PORT, () => {
 process.on('SIGINT', async () => {
   console.log('\n[Express] Shutting down gracefully...');
   defaultMqttService.stop();
+  umiMqtt.end(); // Safely close your MQTT connection
   server.close(async () => {
     await db.closePool();
     console.log('[Express] Database connections closed.');
@@ -93,6 +121,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   defaultMqttService.stop();
+  umiMqtt.end(); // Safely close your MQTT connection
   server.close(async () => {
     await db.closePool();
     process.exit(0);
