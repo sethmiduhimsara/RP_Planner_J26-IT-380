@@ -30,6 +30,7 @@ app.use('/api/pool-orchestrator', poolOrchestratorRouter);
 // 🌍 UMI'S LIVE HARDWARE DATA STREAM 🌍
 const umiMqtt = mqtt.connect('mqtt://broker.hivemq.com:1883');
 let liveSensorData = { ambientTemp: 0, humidity: 0, currentPoolTemp: 0 };
+let hardwareControlMode = 'AUTO'; // Tracks 'AUTO', 'ON', or 'OFF'
 
 // Listen to a custom topic just for Umi's UI!
 umiMqtt.on('connect', () => {
@@ -49,36 +50,45 @@ umiMqtt.on('message', (topic, message) => {
 
 // Endpoint to Send Live Data to the React Dashboard
 app.get('/api/energy-optimization/live-sensors', (req, res) => {
-    res.json(liveSensorData);
+    res.json({ ...liveSensorData, hardwareControlMode });
 });
 
 // 🌍 MANUAL HARDWARE OVERRIDE ENDPOINT 🌍
 app.post('/api/energy-optimization/override', (req, res) => {
     try {
         const { action } = req.body; // 'ON', 'OFF', or 'AUTO'
+        hardwareControlMode = action;
         umiMqtt.publish('ecopool/umi/control', action);
-        console.log(`[Express] Umi Hardware Intercept: Forced Heater ${action}`);
-        res.json({ success: true, command: action });
+        console.log(`[Express] Umi Hardware Intercept: Mode set to [${action}]`);
+        res.json({ success: true, command: action, hardwareControlMode });
     } catch (error) {
         res.status(500).json({ error: "Failed to intercept hardware" });
     }
 });
 
-// 🌍 ENERGY OPTIMIZATION API ENDPOINT (UPDATED) 🌍
+// 🌍 ENERGY OPTIMIZATION API ENDPOINT (UPDATED FOR AUTO 1H SEGMENTS) 🌍
 app.post('/api/energy-optimization/check', async (req, res) => {
     try {
         const { ambientTemp, humidity, currentPoolTemp } = req.body;
         const optimizationResult = await checkHeatingOptimization(ambientTemp, humidity, currentPoolTemp);
         
-        // AUTOMATIC HARDWARE INTERCEPTION: AI forces the physical hardware OFF!
-        if (optimizationResult.action === 'TURN_OFF_HEATER') {
-            umiMqtt.publish('ecopool/umi/control', 'OFF');
-            console.log("[Express] AI Auto-Shutoff Command Sent to ESP32!");
+        // Automatically command the ESP32 OLED & Relay unless manually locked to Force ON/OFF
+        if (hardwareControlMode === 'AUTO') {
+            if (optimizationResult.action === 'TURN_OFF_HEATER') {
+                umiMqtt.publish('ecopool/umi/control', 'OFF');
+                console.log("[Express] 🛑 AI Auto-Shutoff Command ('OFF') Sent to ESP32 OLED & Relay!");
+            } else if (optimizationResult.action === 'KEEP_HEATER_ON') {
+                umiMqtt.publish('ecopool/umi/control', 'ON');
+                console.log("[Express] 🔥 AI Active-Heating Command ('ON') Sent to ESP32 OLED & Relay!");
+            }
         } else {
-            umiMqtt.publish('ecopool/umi/control', 'ON');
+            console.log(`[Express] ⚠️ Hardware is in Manual Override [${hardwareControlMode}] — skipping auto MQTT publish.`);
         }
         
-        res.status(200).json(optimizationResult);
+        res.status(200).json({
+            ...optimizationResult,
+            hardwareControlMode
+        });
         
     } catch (error) {
         console.error("Endpoint Error:", error);
@@ -127,7 +137,7 @@ const server = app.listen(PORT, () => {
 process.on('SIGINT', async () => {
   console.log('\n[Express] Shutting down gracefully...');
   defaultMqttService.stop();
-  umiMqtt.end(); // Safely close your MQTT connection
+  umiMqtt.end();
   server.close(async () => {
     await db.closePool();
     console.log('[Express] Database connections closed.');
@@ -137,7 +147,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   defaultMqttService.stop();
-  umiMqtt.end(); // Safely close your MQTT connection
+  umiMqtt.end();
   server.close(async () => {
     await db.closePool();
     process.exit(0);
