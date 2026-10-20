@@ -11,13 +11,12 @@ export default function EnergyOptimizer() {
   const [aiResult, setAiResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auto-fetch live data every 3 seconds when Live Mode is ON
+  // Auto-fetch live data every 1 second when Live Mode is ON 🏎️
   useEffect(() => {
     let interval;
     if (isLiveMode) {
       interval = setInterval(async () => {
         try {
-          // We will build this quick API route in Node.js next!
           const res = await fetch('http://localhost:5000/api/energy-optimization/live-sensors');
           const liveData = await res.json();
           if (liveData) {
@@ -53,6 +52,13 @@ export default function EnergyOptimizer() {
 
   const handleInputChange = (e) => {
     setSensorData({ ...sensorData, [e.target.name]: parseFloat(e.target.value) || 0 });
+  };
+
+  // 🧠 Umi's Business ROI Math Helper
+  const getSolarEnergy = () => {
+    if (!aiResult || !aiResult.predictedTemp) return 0;
+    const gained = Math.max(0, parseFloat(aiResult.predictedTemp) - sensorData.currentPoolTemp);
+    return (gained * 65000 * 0.00116).toFixed(1); // 65,000L * 0.00116 kWh/L/°C
   };
 
   return (
@@ -116,15 +122,28 @@ export default function EnergyOptimizer() {
         {isLoading ? '🧠 Calculating...' : '🚀 Run AI "What-If" Simulation'}
       </button>
 
-      {/* Results Panel */}
+      {/* Results & ROI Panel */}
       {aiResult && !aiResult.error && (
         <div style={{ marginTop: '20px', padding: '15px', backgroundColor: aiResult.action === 'TURN_OFF_HEATER' ? '#D4EDDA' : '#FFF3CD', border: '1px solid', borderColor: aiResult.action === 'TURN_OFF_HEATER' ? '#C3E6CB' : '#FFEEBA', borderRadius: '5px' }}>
           <h3 style={{ margin: '0 0 10px 0' }}>🤖 AI Decision:</h3>
           <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>
-            Action: {aiResult.action === 'TURN_OFF_HEATER' ? '🛑 TURN OFF HEATER' : '🔥 KEEP HEATER ON'}
+            Action: {aiResult.action === 'TURN_OFF_HEATER' ? '🛑 TURN OFF HEATER (Save Energy)' : '🔥 KEEP HEATER ON'}
           </p>
           {aiResult.predictedTemp && (
-            <p style={{ margin: '5px 0' }}>Predicted Temp: <strong>{aiResult.predictedTemp}°C</strong></p>
+            <p style={{ margin: '5px 0' }}>Predicted Temp in 1 Hour: <strong>{aiResult.predictedTemp}°C</strong></p>
+          )}
+
+          {/* 💰 The Money Maker Box! Only shows when the AI saves energy! */}
+          {aiResult.action === 'TURN_OFF_HEATER' && (
+            <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #28A745' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#155724' }}>💰 Financial & Energy Savings (Next 1 Hour)</h4>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#155724', lineHeight: '1.8' }}>
+                <li><strong>Heater Sleep Duration:</strong> 1.0 Hour ⏱️</li>
+                <li><strong>Free Solar Energy Harvested:</strong> {getSolarEnergy()} kWh ☀️</li>
+                <li><strong>Grid Electricity Saved:</strong> 30.0 kWh <em>(Assuming 30kW Heater)</em> 🔌</li>
+                <li><strong>CEB Cost Avoided:</strong> <strong>Rs. 1,200.00</strong> <em>(At ~Rs. 40/unit)</em> 💸</li>
+              </ul>
+            </div>
           )}
         </div>
       )}
