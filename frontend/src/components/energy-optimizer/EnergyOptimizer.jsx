@@ -371,7 +371,7 @@ export default function EnergyOptimizer() {
               onMouseLeave={() => setHoveredCard(null)}
             >
               <div style={{ fontSize: '12px', color: '#555', fontWeight: 'bold' }}>
-                {tempDiff1H >= 0 ? 'Heat Gained (1H)' : 'Natural Cooling (1H)'}
+                {tempDiff1H >= 0 ? 'Natural Heat Gained (1H)' : 'Natural Cooling (1H)'}
               </div>
               <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#111', marginTop: '6px' }}>
                 {Math.abs(tempDiff1H).toFixed(2)}°C

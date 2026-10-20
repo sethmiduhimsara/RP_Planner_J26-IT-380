@@ -19,12 +19,21 @@ const checkHeatingOptimization = async (ambientTemp, humidity, currentPoolTemp, 
         const command = `python ../ml-service/energy-optimization/predict_temp.py ${ambientTempNum} ${humidityNum} ${simulatedHeaterStatus} ${currentTempNum}`;
         const { stdout } = await execAsync(command);
 
-        const predictedTemp = parseFloat(stdout.trim());
+        let predictedTemp = parseFloat(stdout.trim());
+
+        // THERMODYNAMIC GUARDRAIL FOR OUT-OF-DATASET INPUTS (< 28°C or > 35.5°C):
+        // Since the ML dataset was trained on 28°C–35°C, if someone enters 17°C in Manual Demo Mode,
+        // prevent the model from jumping +11°C in 1 hour by clamping max natural 1H change to ±0.85°C.
+        const rawDiff = predictedTemp - currentTempNum;
+        if (Math.abs(rawDiff) > 0.85) {
+            const realisticShift = (ambientTempNum - currentTempNum) * 0.05;
+            const clampedShift = Math.max(-0.5, Math.min(0.85, realisticShift));
+            predictedTemp = Number((currentTempNum + clampedShift).toFixed(2));
+        }
+
         const tempDiff1H = predictedTemp - currentTempNum;
 
-        // Calculate the dynamic stop temperature based on how much the pool changes in 1 hour:
-        // - If naturally heating (tempDiff1H > 0): heater stops at (35.0 - tempDiff1H), e.g., 33.5°C, 34.2°C, 34.5°C, 34.8°C
-        // - If naturally cooling (tempDiff1H <= 0): heater stops if running the heater for 1h would exceed 35.0°C
+        // Dynamic Stop Point: where the heater can turn off so 1H change doesn't exceed 35.0°C
         const dynamicStopTemp = tempDiff1H > 0
             ? Number((targetTemp - tempDiff1H).toFixed(2))
             : Number((targetTemp - HEATER_1H_TEMP_RISE - tempDiff1H).toFixed(2));
@@ -36,10 +45,6 @@ const checkHeatingOptimization = async (ambientTemp, humidity, currentPoolTemp, 
             `[EcoPool Engine] Current: ${currentTempNum.toFixed(2)}°C | Est. 1H (Heater OFF): ${predictedTemp.toFixed(2)}°C | Dynamic Stop Temp: ${dynamicStopTemp.toFixed(2)}°C`
         );
 
-        // Turn OFF heater for the next 1 hour if:
-        // 1. Current pool temp is already >= 35.0°C
-        // 2. Natural heating alone reaches or exceeds 35.0°C in 1 hour (stops at 33.5°C, 34.2°C, 34.5°C, etc.)
-        // 3. Running the heater for the next 1 hour would cause the pool to exceed 35.0°C (e.g., Est. Temp 34.88°C with 0.02°C cooling)
         if (
             currentTempNum >= targetTemp ||
             predictedTemp >= targetTemp ||
