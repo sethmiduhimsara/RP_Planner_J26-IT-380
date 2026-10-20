@@ -52,16 +52,32 @@ app.get('/api/energy-optimization/live-sensors', (req, res) => {
     res.json(liveSensorData);
 });
 
-// ENERGY OPTIMIZATION API ENDPOINT 
+// 🌍 MANUAL HARDWARE OVERRIDE ENDPOINT 🌍
+app.post('/api/energy-optimization/override', (req, res) => {
+    try {
+        const { action } = req.body; // 'ON', 'OFF', or 'AUTO'
+        umiMqtt.publish('ecopool/umi/control', action);
+        console.log(`[Express] Umi Hardware Intercept: Forced Heater ${action}`);
+        res.json({ success: true, command: action });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to intercept hardware" });
+    }
+});
+
+// 🌍 ENERGY OPTIMIZATION API ENDPOINT (UPDATED) 🌍
 app.post('/api/energy-optimization/check', async (req, res) => {
     try {
-        // 1. Grab the live pool data sent from Himsara's React UI
         const { ambientTemp, humidity, currentPoolTemp } = req.body;
-        
-        // 2. Trigger your AI Controller to run the "What-If" simulation
         const optimizationResult = await checkHeatingOptimization(ambientTemp, humidity, currentPoolTemp);
         
-        // 3. Send the final AI decision straight back to the frontend dashboard!
+        // AUTOMATIC HARDWARE INTERCEPTION: AI forces the physical hardware OFF!
+        if (optimizationResult.action === 'TURN_OFF_HEATER') {
+            umiMqtt.publish('ecopool/umi/control', 'OFF');
+            console.log("[Express] AI Auto-Shutoff Command Sent to ESP32!");
+        } else {
+            umiMqtt.publish('ecopool/umi/control', 'ON');
+        }
+        
         res.status(200).json(optimizationResult);
         
     } catch (error) {
