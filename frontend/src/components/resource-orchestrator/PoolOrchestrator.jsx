@@ -64,6 +64,81 @@ function WeatherIcon({ category, size = 15, className = '' }) {
   )
 }
 
+// ============================================================================
+// Filtration Modes Specification (Mode 1 to Mode 4)
+// ============================================================================
+const FILTRATION_MODES = {
+  1: {
+    modeNumber: 1,
+    name: 'Eco Filtration',
+    fullName: 'Mode 1 — Eco Filtration',
+    speed: 'Low speed',
+    operation: 'Energy-conscious operation',
+    theme: 'blue',
+  },
+  2: {
+    modeNumber: 2,
+    name: 'Standard Filtration',
+    fullName: 'Mode 2 — Standard Filtration',
+    speed: 'Medium speed',
+    operation: 'Normal operation',
+    theme: 'green',
+  },
+  3: {
+    modeNumber: 3,
+    name: 'Boost Filtration',
+    fullName: 'Mode 3 — Boost Filtration',
+    speed: 'High speed',
+    operation: 'Increased filtration demand',
+    theme: 'amber',
+  },
+  4: {
+    modeNumber: 4,
+    name: 'Peak Filtration',
+    fullName: 'Mode 4 — Peak Filtration',
+    speed: 'Maximum permitted speed',
+    operation: 'Peak demand',
+    theme: 'red',
+  },
+}
+
+function FiltrationModeIcon({ mode = 1, size = 16, className = '' }) {
+  if (mode === 1) {
+    // Mode 1 — Eco Filtration: Speedometer / gauge icon
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <path d="M12 14l2-3" />
+        <path d="M3.34 17a10 10 0 1 1 17.32 0" />
+      </svg>
+    )
+  }
+  if (mode === 2) {
+    // Mode 2 — Standard Filtration: Waves icon
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+        <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      </svg>
+    )
+  }
+  if (mode === 3) {
+    // Mode 3 — Boost Filtration: Lightning bolt icon
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    )
+  }
+  // Mode 4 — Peak Filtration: Framed peak chart icon
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M7 14l3-3 3 3 4-5" />
+    </svg>
+  )
+}
+
 export default function PoolOrchestrator() {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'settings'
   const [latestData, setLatestData] = useState(null)
@@ -155,25 +230,10 @@ export default function PoolOrchestrator() {
   const facilityName = settings?.pool_name || latestData?.facilityName || healthData?.facilityName || 'Aquatic Centre Main Pool'
   const currentOccupancy = latestData?.occupancy?.occupancy_count ?? null
   const latestSensor = latestData?.reading ?? null
-  const filtrationEvent = latestData?.filtration ?? null
-  const bulbRecommendation = latestData?.bulbRecommendation ?? null
 
   const lowDemandMax = settings?.low_demand_max ?? 15
   const modDemandMax = settings?.moderate_demand_max ?? 30
   const highDemandMax = settings?.high_demand_max ?? 45
-
-  // Automatically light bulbs/relays according to current occupancy using configured thresholds:
-  // <lowDemandMax -> 1 Relay, lowDemandMax-modDemandMax -> 2 Relays, modDemandMax-highDemandMax -> 3 Relays, >highDemandMax -> 4 Relays
-  const activeBulbCount = useMemo(() => {
-    const occ = currentOccupancy ?? latestSensor?.swimmer_count ?? null
-    if (occ !== null && !isNaN(occ)) {
-      if (occ > highDemandMax) return 4
-      if (occ > modDemandMax) return 3
-      if (occ >= lowDemandMax) return 2
-      return 1
-    }
-    return bulbRecommendation?.bulbs ?? 1
-  }, [currentOccupancy, latestSensor, bulbRecommendation, lowDemandMax, modDemandMax, highDemandMax])
 
   const predictions = useMemo(() => forecastData?.predictions || [], [forecastData])
   const resourcePlan = useMemo(() => latestData?.resourcePlan || forecastData?.resourcePlan || null, [latestData, forecastData])
@@ -235,31 +295,32 @@ export default function PoolOrchestrator() {
     }
   }, [latestSensor, predictions, weatherConfigured])
 
-  // Filtration status, occupancy tier, and operational detail
-  const { filtrationStateName, occupancyTierRange, filtrationDetailText } = useMemo(() => {
+  // Dynamic filtration mode, cycle name, and operational detail
+  const currentFiltrationMode = useMemo(() => {
     const occ = currentOccupancy ?? 0
-    let stateName = 'Low'
+    let modeKey = 1
     let tierRange = `< ${lowDemandMax} swimmers`
 
     if (occ > highDemandMax) {
-      stateName = 'Very High'
+      modeKey = 4
       tierRange = `> ${highDemandMax} swimmers`
     } else if (occ > modDemandMax) {
-      stateName = 'High'
+      modeKey = 3
       tierRange = `${modDemandMax + 1}–${highDemandMax} swimmers`
     } else if (occ >= lowDemandMax) {
-      stateName = 'Moderate'
+      modeKey = 2
       tierRange = `${lowDemandMax}–${modDemandMax} swimmers`
     }
 
+    const mode = FILTRATION_MODES[modeKey]
     const detail = currentOccupancy !== null
-      ? `Auto-regulated for ${occ} swimmers (${tierRange})`
-      : 'Auto load-based baseline circulation'
+      ? `${mode.operation} · Auto-regulated for ${occ} swimmers (${tierRange})`
+      : `${mode.operation} · Auto load-based baseline circulation`
 
     return {
-      filtrationStateName: stateName,
+      ...mode,
       occupancyTierRange: tierRange,
-      filtrationDetailText: detail,
+      detailText: detail,
     }
   }, [currentOccupancy, lowDemandMax, modDemandMax, highDemandMax])
 
@@ -527,46 +588,26 @@ export default function PoolOrchestrator() {
                 <p className="po-metric-detail">{weatherDetailText}</p>
               </article>
 
-              {/* 4. Filtration Relay Board */}
+              {/* 4. Filtration Mode & Cycle */}
               <article className="po-metric-card">
                 <div className="po-metric-header">
-                  <span className="po-metric-title">Filtration Relay Board</span>
-                  <div className="po-metric-icon green" title="4-Channel Hardware Relay State">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="2" y="2" width="20" height="8" rx="2" />
-                      <rect x="2" y="14" width="20" height="8" rx="2" />
-                      <line x1="6" y1="6" x2="6.01" y2="6" />
-                      <line x1="6" y1="18" x2="6.01" y2="18" />
-                    </svg>
+                  <span className="po-metric-title">Filtration Cycle</span>
+                  <div
+                    className={`po-metric-icon ${currentFiltrationMode.theme}`}
+                    title={`${currentFiltrationMode.fullName} (${currentFiltrationMode.speed} · ${currentFiltrationMode.operation})`}
+                  >
+                    <FiltrationModeIcon mode={currentFiltrationMode.modeNumber} size={16} />
                   </div>
                 </div>
 
                 <div className="po-metric-main">
-                  <span className="po-metric-value">{filtrationStateName}</span>
-                  <span className="po-metric-unit">Turnover Load</span>
-                </div>
-
-                {/* Modern Industrial 4-Relay Channel Matrix */}
-                <div className="po-relay-matrix" title={`Relay Rack: ${activeBulbCount} of 4 channels energized`}>
-                  {[1, 2, 3, 4].map((ch) => {
-                    const isLit = ch <= activeBulbCount
-                    return (
-                      <div
-                        key={ch}
-                        className={`po-relay-channel ${isLit ? 'active' : 'idle'}`}
-                        title={`Channel R${ch}: ${isLit ? 'Energized' : 'Standby'}`}
-                      >
-                        <span className="po-relay-dot" />
-                        <span className="po-relay-num">R{ch}</span>
-                      </div>
-                    )
-                  })}
-                  <span className="po-relay-summary">
-                    {activeBulbCount}/4 Active
+                  <span className="po-metric-value">{currentFiltrationMode.name}</span>
+                  <span className="po-metric-unit">
+                    Mode {currentFiltrationMode.modeNumber} · {currentFiltrationMode.speed}
                   </span>
                 </div>
 
-                <p className="po-metric-detail">{filtrationDetailText}</p>
+                <p className="po-metric-detail">{currentFiltrationMode.detailText}</p>
               </article>
             </div>
           </section>
@@ -772,9 +813,13 @@ export default function PoolOrchestrator() {
                         <td>
                           <span className={`po-filtration-pill ${row.filtration.requiresApproval ? 'approval' : ''}`}>
                             <span className="po-relay-stage-indicator">
-                              {row.filtration.bulbs ? `R1-R${row.filtration.bulbs}` : 'R1'}
+                              {row.filtration.stage ? `Mode ${row.filtration.stage}` : (
+                                row.demandLevel === 'Very High' ? 'Mode 4' :
+                                row.demandLevel === 'High' ? 'Mode 3' :
+                                row.demandLevel === 'Moderate' ? 'Mode 2' : 'Mode 1'
+                              )}
                             </span>
-                            <span>{row.filtration.recommendation}</span>
+                            <span>{row.filtration.recommendation || row.filtration.mode}</span>
                             {row.filtration.requiresApproval && <span className="po-req-tag">Approval Req</span>}
                           </span>
                           <div className="po-slot-subtext" style={{ marginTop: '3px' }}>

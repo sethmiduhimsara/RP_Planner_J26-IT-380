@@ -24,9 +24,10 @@ function getPoolConfig() {
     // If user provided a direct supabase URL on an IPv4 network, fallback to session pooler if needed
     if (parsed.hostname.startsWith('db.') && parsed.hostname.endsWith('.supabase.co')) {
       const projectRef = parsed.hostname.split('.')[1];
-      // If IPv6 is not available, aws-0-ap-south-1.pooler.supabase.com is the verified pooler for this project
+      // aws-0-ap-south-1.pooler.supabase.com is the verified pooler for this project.
+      // Use port 6543 (Transaction Mode) to avoid Supabase session-mode limit (EMAXCONNSESSION).
       const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-ap-south-1.pooler.supabase.com';
-      const poolerPort = parseInt(process.env.SUPABASE_POOLER_PORT || '5432', 10);
+      const poolerPort = parseInt(process.env.SUPABASE_POOLER_PORT || '6543', 10);
       const user = parsed.username.includes('.') ? parsed.username : `${parsed.username}.${projectRef}`;
 
       return {
@@ -37,8 +38,8 @@ function getPoolConfig() {
         database: parsed.pathname.replace(/^\//, '') || 'postgres',
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 10000,
-        idleTimeoutMillis: 30000,
-        max: 10,
+        idleTimeoutMillis: 10000,
+        max: parseInt(process.env.DB_POOL_MAX || '6', 10),
       };
     }
   } catch (err) {

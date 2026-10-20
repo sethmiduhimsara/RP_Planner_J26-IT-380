@@ -369,12 +369,14 @@
 .po-metric-icon.purple { background: #f3e8ff; color: #7c3aed; }
 .po-metric-icon.amber { background: #fef3c7; color: #d97706; }
 .po-metric-icon.green { background: #dcfce7; color: #059669; }
+.po-metric-icon.red { background: #fee2e2; color: #dc2626; }
 
 .po-metric-main {
   display: flex;
   align-items: baseline;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .po-metric-value {

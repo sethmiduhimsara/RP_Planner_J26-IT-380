@@ -53,13 +53,13 @@ class PoolOrchestratorFiltrationService {
         stage: 4,
         bulbs: 4,
         level: 'Very High',
-        mode: 'Stage 4: Very High Load',
-        recommendation: '4 Bulbs Active (Maximum Turnover)',
+        mode: 'Mode 4 — Peak Filtration',
+        recommendation: 'Peak Filtration (Maximum permitted speed)',
         relays: [1, 1, 1, 1],
         relayPayload: '1,1,1,1',
         requiresApproval: true,
-        description: 'Stage 4 Maximum Filtration (4 Bulbs / Relays Active)',
-        rationale: `Very high occupancy (${count} swimmers > ${this.highDemandMax}). All 4 filtration pumps/bulbs engaged for maximum hydraulic turnover and sanitization.`,
+        description: 'Mode 4 Peak Filtration (Maximum permitted speed · Peak demand)',
+        rationale: `Peak demand (${count} swimmers > ${this.highDemandMax}). Maximum permitted filtration speed engaged for peak bather turnover and sanitization.`,
       };
     }
 
@@ -68,13 +68,13 @@ class PoolOrchestratorFiltrationService {
         stage: 3,
         bulbs: 3,
         level: 'High',
-        mode: 'Stage 3: High Load',
-        recommendation: '3 Bulbs Active (High Circulation)',
+        mode: 'Mode 3 — Boost Filtration',
+        recommendation: 'Boost Filtration (High speed)',
         relays: [1, 1, 1, 0],
         relayPayload: '1,1,1,0',
         requiresApproval: false,
-        description: 'Stage 3 High Circulation (3 Bulbs / Relays Active)',
-        rationale: `High occupancy (${count} swimmers: ${this.moderateDemandMax + 1}–${this.highDemandMax}). 3 filtration pumps/bulbs engaged to match elevated bather circulation.`,
+        description: 'Mode 3 Boost Filtration (High speed · Increased filtration demand)',
+        rationale: `High occupancy (${count} swimmers: ${this.moderateDemandMax + 1}–${this.highDemandMax}). High speed filtration engaged to meet increased filtration demand.`,
       };
     }
 
@@ -83,13 +83,13 @@ class PoolOrchestratorFiltrationService {
         stage: 2,
         bulbs: 2,
         level: 'Moderate',
-        mode: 'Stage 2: Moderate Load',
-        recommendation: '2 Bulbs Active (Standard Circulation)',
+        mode: 'Mode 2 — Standard Filtration',
+        recommendation: 'Standard Filtration (Medium speed)',
         relays: [1, 1, 0, 0],
         relayPayload: '1,1,0,0',
         requiresApproval: false,
-        description: 'Stage 2 Standard Circulation (2 Bulbs / Relays Active)',
-        rationale: `Moderate occupancy (${count} swimmers: ${this.lowDemandMax}–${this.moderateDemandMax}). 2 filtration pumps/bulbs active for standard continuous turnover.`,
+        description: 'Mode 2 Standard Filtration (Medium speed · Normal operation)',
+        rationale: `Moderate occupancy (${count} swimmers: ${this.lowDemandMax}–${this.moderateDemandMax}). Medium speed active for normal standard continuous turnover.`,
       };
     }
 
@@ -98,13 +98,13 @@ class PoolOrchestratorFiltrationService {
       stage: 1,
       bulbs: 1,
       level: 'Low',
-      mode: 'Stage 1: Low Load',
-      recommendation: '1 Bulb Active (Baseline Circulation)',
+      mode: 'Mode 1 — Eco Filtration',
+      recommendation: 'Eco Filtration (Low speed)',
       relays: [1, 0, 0, 0],
       relayPayload: '1,0,0,0',
       requiresApproval: false,
-      description: 'Stage 1 Baseline Circulation (1 Bulb / Relay Active)',
-      rationale: `Low occupancy (${count} swimmers < ${this.lowDemandMax}). 1 filtration pump/bulb active for mandatory continuous baseline circulation.`,
+      description: 'Mode 1 Eco Filtration (Low speed · Energy-conscious operation)',
+      rationale: `Low occupancy (${count} swimmers < ${this.lowDemandMax}). Low speed filtration active for energy-conscious continuous baseline circulation.`,
     };
   }
 
@@ -149,10 +149,10 @@ class PoolOrchestratorFiltrationService {
         relays: [1, 0, 0, 0],
         relayPayload: '1,0,0,0',
       };
-      mode = 'Off-Peak Turnover';
-      recommendation = '1 Bulb (Scheduled Deep Turnover)';
+      mode = 'Mode 1 — Eco Filtration (Off-Peak)';
+      recommendation = 'Eco Filtration (Scheduled Off-Peak)';
       requiresApproval = false;
-      rationale = `Facility closed (${this.closingHour % 12 || 12}:00 PM – ${this.openingHour % 12 || 12}:00 AM/PM). Recommended scheduled turnover window to meet daily ${this.minDailyHours}-hour circulation requirement at off-peak energy rates.`;
+      rationale = `Facility closed (${this.closingHour % 12 || 12}:00 PM – ${this.openingHour % 12 || 12}:00 AM/PM). Recommended scheduled turnover window to meet daily ${this.minDailyHours}-hour circulation requirement at energy-conscious rates.`;
     } else {
       stageInfo = this.getBulbRelayStateForOccupancy(swimmers);
       mode = stageInfo.mode;

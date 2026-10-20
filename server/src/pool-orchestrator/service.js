@@ -145,22 +145,26 @@ async function getForecast() {
  * Retrieves latest filtration event or reports unacknowledged status
  */
 async function getFiltrationStatus() {
-  const result = await db.query(`
-    SELECT *
-    FROM public.filtration_events
-    ORDER BY recorded_at DESC
-    LIMIT 1
-  `);
+  try {
+    const result = await db.query(`
+      SELECT *
+      FROM public.filtration_events
+      ORDER BY recorded_at DESC
+      LIMIT 1
+    `);
 
-  if (result.rows.length > 0) {
-    const row = result.rows[0];
-    return {
-      relayState: row.relay_state,
-      reason: row.reason,
-      recordedAt: row.recorded_at,
-      source: row.source,
-      acknowledged: true,
-    };
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      return {
+        relayState: row.relay_state,
+        reason: row.reason,
+        recordedAt: row.recorded_at,
+        source: row.source,
+        acknowledged: true,
+      };
+    }
+  } catch (err) {
+    console.warn('[PoolOrchestratorService] Notice querying filtration status, using fallback:', err.message);
   }
 
   return {
