@@ -9,17 +9,23 @@ import './Dashboard.css';
 
 export default function Dashboard({ onNavigateHome }) {
   const [activeTab, setActiveTab] = useState('summary');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Breadcrumb / title mapping
+  // Breadcrumb / title mapping for all menu items
   const titles = {
-    summary: 'System Summary & Operations',
-    pump: 'Edge-AI Pump Predictive Maintenance',
-    leak: 'AI Water Loss & Structural Leak Tracker',
-    energy: 'Algorithmic Energy Optimization System',
-    resource: 'AI-Driven Predictive Resource Orchestrator',
+    summary: 'Dashboard Overview',
+    'pool-overview': 'Pool Overview & Telemetry',
+    pump: 'Pump Health & Vibration Diagnostics',
+    leak: 'Water Loss & Structural Leak Tracker',
+    energy: 'Heating Optimization System',
+    resource: 'Environmental Data & Planning',
+    sensors: 'Sensor Devices & Hardware Telemetry',
+    alerts: 'Alerts & Operational Events',
+    research: 'Research Insights & Analysis',
+    settings: 'System & Parameter Settings',
   };
 
-  // Render the unique component for each team member
+  // Render the unique component for each tab
   const renderActiveComponent = () => {
     switch (activeTab) {
       case 'pump':
@@ -31,6 +37,7 @@ export default function Dashboard({ onNavigateHome }) {
       case 'resource':
         return <ResourceOrchestrator />;
       case 'summary':
+      case 'pool-overview':
       default:
         return <SummaryView onSelectModule={(tabId) => setActiveTab(tabId)} />;
     }
@@ -39,12 +46,14 @@ export default function Dashboard({ onNavigateHome }) {
   return (
     <div className="dashboard-layout">
       {/* -------------------------------------------------------------------
-          Common Dashboard Sidebar
+          Common Dashboard Sidebar (Fully Responsive with Mobile Drawer)
       ------------------------------------------------------------------- */}
       <Sidebar
         activeTab={activeTab}
         onTabChange={(tabId) => setActiveTab(tabId)}
         onNavigateHome={onNavigateHome}
+        isOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
       />
 
       {/* -------------------------------------------------------------------
@@ -54,9 +63,20 @@ export default function Dashboard({ onNavigateHome }) {
         {/* Top Header Bar */}
         <header className="dashboard-topbar">
           <div className="dashboard-topbar-left">
+            {/* Hamburger Button for Mobile (<900px) */}
+            <button
+              type="button"
+              className="db-mobile-menu-btn"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open Sidebar Menu"
+              title="Open Menu"
+            >
+              <i className="fa-solid fa-bars"></i>
+            </button>
+
             <div className="dashboard-breadcrumbs">
-              <span>Dashboard</span>
-              <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.7rem' }}></i>
+              <span className="db-bc-root">AquaEdge AI</span>
+              <i className="fa-solid fa-chevron-right db-bc-arrow"></i>
               <span className="active">{titles[activeTab] || 'Overview'}</span>
             </div>
           </div>
@@ -64,7 +84,7 @@ export default function Dashboard({ onNavigateHome }) {
           <div className="dashboard-topbar-right">
             <div className="db-status-chip">
               <i className="fa-solid fa-circle" style={{ fontSize: '0.55rem' }}></i>
-              <span>ESP32 Telemetry Live</span>
+              <span>ESP32 Live</span>
             </div>
 
             <div className="db-user-avatar" title="Facility Engineer">

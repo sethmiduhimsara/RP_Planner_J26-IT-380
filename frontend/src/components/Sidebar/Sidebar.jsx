@@ -1,152 +1,186 @@
 import React from 'react';
 import './Sidebar.css';
 
-export default function Sidebar({ activeTab = 'summary', onTabChange, onNavigateHome }) {
-  // Navigation tabs configuration
-  const tabs = [
+export default function Sidebar({
+  activeTab = 'summary',
+  onTabChange,
+  onNavigateHome,
+  isOpen = false,
+  onClose,
+}) {
+  // Navigation structure exactly matching the screenshot UI
+  const menuSections = [
     {
-      category: 'General',
+      title: 'OVERVIEW',
       items: [
         {
           id: 'summary',
-          title: 'System Summary',
-          subtitle: 'Unified Pool Telemetry',
-          icon: 'fa-solid fa-gauge-high',
-          badge: 'Live',
-          badgeClass: 'sb-badge-green',
+          title: 'Dashboard',
+          icon: 'fa-solid fa-chart-line',
         },
       ],
     },
     {
-      category: 'Research Components',
+      title: 'MONITORING',
       items: [
         {
-          id: 'pump',
-          title: 'Pump Predictive Maintenance',
-          subtitle: 'ESP32 · ADXL345 · TinyML',
-          icon: 'fa-solid fa-gears',
-          member: 'Component 01',
+          id: 'pool-overview',
+          title: 'Pool Overview',
+          icon: 'fa-solid fa-water',
         },
         {
           id: 'leak',
-          title: 'Water Loss & Leak Tracker',
-          subtitle: 'LSTM · Ultrasonic Sensors',
+          title: 'Water Loss Analysis',
           icon: 'fa-solid fa-droplet',
-          member: 'Component 02',
+        },
+        {
+          id: 'pump',
+          title: 'Pump Health',
+          icon: 'fa-solid fa-gears',
         },
         {
           id: 'energy',
-          title: 'Energy Optimization System',
-          subtitle: 'Smart Heating Algorithm',
+          title: 'Heating Optimization',
           icon: 'fa-solid fa-temperature-arrow-up',
-          member: 'Component 03',
         },
         {
           id: 'resource',
-          title: 'Resource Orchestrator',
-          subtitle: 'XGBoost AI Planning',
-          icon: 'fa-solid fa-chart-line',
-          member: 'Component 04',
+          title: 'Environmental Data',
+          icon: 'fa-solid fa-cloud-sun',
+        },
+      ],
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        {
+          id: 'sensors',
+          title: 'Sensor Devices',
+          icon: 'fa-solid fa-microchip',
+        },
+        {
+          id: 'alerts',
+          title: 'Alerts & Events',
+          icon: 'fa-solid fa-bell',
+        },
+        {
+          id: 'research',
+          title: 'Research Insights',
+          icon: 'fa-solid fa-flask',
+        },
+        {
+          id: 'settings',
+          title: 'Settings',
+          icon: 'fa-solid fa-sliders',
         },
       ],
     },
   ];
 
-  const handleTabClick = (tabId) => {
+  const handleItemClick = (itemId) => {
     if (onTabChange) {
-      onTabChange(tabId);
+      onTabChange(itemId);
+    }
+    // Auto-close drawer on mobile when an item is selected
+    if (onClose) {
+      onClose();
     }
   };
 
   return (
-    <aside className="dashboard-sidebar" aria-label="Dashboard Sidebar">
-      {/* -------------------------------------------------------------------
-          Sidebar Header / Branding
-      ------------------------------------------------------------------- */}
-      <div>
-        <div className="sb-header">
-          <div className="sb-brand">
-            <div className="sb-brand-icon">
-              <i className="fa-solid fa-water"></i>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div
+          className="sb-mobile-backdrop"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Main Sidebar Component */}
+      <aside
+        className={`aquaedge-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Application Navigation"
+      >
+        <div className="sb-inner-scroll">
+          {/* -----------------------------------------------------------------
+              Header: Brand Logo & Pink Bar from Screenshot
+          ----------------------------------------------------------------- */}
+          <div className="sb-header-block">
+            <div className="sb-brand-row">
+              <div className="sb-brand-logo">
+                <div className="sb-logo-badge">
+                  <i className="fa-solid fa-droplet"></i>
+                </div>
+                <span className="sb-brand-title">AquaEdge AI</span>
+              </div>
+
+              {/* Close Button on Mobile View */}
+              <button
+                type="button"
+                className="sb-mobile-close-btn"
+                onClick={onClose}
+                aria-label="Close Sidebar"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
             </div>
-            <div className="sb-brand-info">
-              <span className="sb-brand-title">AquaEdge AI</span>
-              <span className="sb-brand-subtitle">Control Dashboard</span>
-            </div>
+
+            {/* Pink Accent Line from Screenshot */}
+            <div className="sb-pink-bar" aria-hidden="true"></div>
           </div>
 
-          <div className="sb-project-pill">
-            <i className="fa-solid fa-microchip"></i>
-            <span>SLIIT Research · J26-IT-380</span>
-          </div>
-        </div>
+          {/* -----------------------------------------------------------------
+              Navigation Sections (OVERVIEW, MONITORING, SYSTEM)
+          ----------------------------------------------------------------- */}
+          <nav className="sb-nav-container">
+            {menuSections.map((section, sIdx) => (
+              <div key={sIdx} className="sb-nav-section">
+                <span className="sb-section-title">{section.title}</span>
+                <ul className="sb-menu-list">
+                  {section.items.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className={`sb-menu-btn ${isActive ? 'is-active' : ''}`}
+                          onClick={() => handleItemClick(item.id)}
+                          aria-current={isActive ? 'page' : undefined}
+                        >
+                          {/* Active left indicator strip */}
+                          {isActive && <span className="sb-active-strip"></span>}
 
-        {/* -------------------------------------------------------------------
-            Navigation Tab List
-        ------------------------------------------------------------------- */}
-        <nav className="sb-nav-section">
-          {tabs.map((section, sIdx) => (
-            <div key={sIdx} className="sb-nav-group">
-              <div className="sb-section-label">{section.category}</div>
-              <ul className="sb-nav-list">
-                {section.items.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <li key={tab.id}>
-                      <button
-                        type="button"
-                        className={`sb-nav-item ${isActive ? 'is-active' : ''}`}
-                        onClick={() => handleTabClick(tab.id)}
-                        aria-current={isActive ? 'page' : undefined}
-                      >
-                        <div className="sb-item-icon-wrapper">
-                          <i className={tab.icon}></i>
-                        </div>
-                        <div className="sb-item-content">
-                          <span className="sb-item-title">{tab.title}</span>
-                          <span className="sb-item-sub">{tab.subtitle}</span>
-                        </div>
-                        {tab.badge && (
-                          <span className={`sb-item-badge ${tab.badgeClass}`}>
-                            {tab.badge}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </nav>
-      </div>
+                          <i className={`sb-menu-icon ${item.icon}`}></i>
+                          <span className="sb-menu-label">{item.title}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </nav>
 
-      {/* -------------------------------------------------------------------
-          Sidebar Footer / System Status & Quick Actions
-      ------------------------------------------------------------------- */}
-      <div className="sb-footer">
-        <div className="sb-status-card">
-          <div className="sb-status-left">
-            <span className="sb-live-pulse"></span>
-            <span>Edge Telemetry</span>
-          </div>
-          <span className="sb-status-tag">Connected</span>
-        </div>
-
-        <div className="sb-footer-actions">
+          {/* -----------------------------------------------------------------
+              Quick Return to Landing Page Action at Bottom
+          ----------------------------------------------------------------- */}
           {onNavigateHome && (
-            <button
-              type="button"
-              className="sb-action-btn"
-              onClick={onNavigateHome}
-              title="Return to Landing Page"
-            >
-              <i className="fa-solid fa-arrow-left"></i>
-              <span>Back to Landing Page</span>
-            </button>
+            <div className="sb-footer-block">
+              <button
+                type="button"
+                className="sb-return-btn"
+                onClick={onNavigateHome}
+                title="Return to Landing Page"
+              >
+                <i className="fa-solid fa-arrow-left"></i>
+                <span>Back to Home</span>
+              </button>
+            </div>
           )}
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
