@@ -11,6 +11,7 @@ export default function EnergyOptimizer() {
   const [aiResult, setAiResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // 🛜 Auto-fetch live data every 1 second when Live Mode is ON
   useEffect(() => {
     let interval;
     if (isLiveMode) {
@@ -31,6 +32,7 @@ export default function EnergyOptimizer() {
     return () => clearInterval(interval);
   }, [isLiveMode, sensorData]);
 
+  // 🧠 Trigger Python AI Backend
   const triggerAI = async () => {
     setIsLoading(true);
     try {
@@ -47,6 +49,7 @@ export default function EnergyOptimizer() {
     setIsLoading(false);
   };
 
+  // 🎛️ Manual Hardware Control Override
   const sendHardwareCommand = async (command) => {
     try {
       await fetch('http://localhost:5000/api/energy-optimization/override', {
@@ -60,21 +63,41 @@ export default function EnergyOptimizer() {
     }
   };
 
+  // Clear AI box instantly when typing new numbers to prevent "Ghost Math"
   const handleInputChange = (e) => {
     setSensorData({ ...sensorData, [e.target.name]: parseFloat(e.target.value) || 0 });
+    setAiResult(null); 
   };
 
-  // 🧠 Upgraded ROI Math for partial hours
+  // ☀️ Thermodynamics Math Helpers
+  const tempDiff1H = aiResult ? (parseFloat(aiResult.predictedTemp) - sensorData.currentPoolTemp) : 0;
+  const tempDiff30M = tempDiff1H / 2;
+
   const getSolarEnergy = (hours) => {
     if (!aiResult || !aiResult.predictedTemp) return 0;
-    const gained = Math.max(0, parseFloat(aiResult.predictedTemp) - sensorData.currentPoolTemp);
+    const gained = parseFloat(aiResult.predictedTemp) - sensorData.currentPoolTemp;
+    if (gained <= 0) return 0; // If it's cooling, no solar energy gained
     const totalEnergy = (gained * 65000 * 0.00116);
     return (totalEnergy * hours).toFixed(1); 
   };
 
-  // Calculate temp differences cleanly
-  const tempDiff1H = aiResult ? (parseFloat(aiResult.predictedTemp) - sensorData.currentPoolTemp) : 0;
-  const tempDiff30M = tempDiff1H / 2;
+  // 🛑 Master Status Logic (Prioritizes the 35°C Auto-Shutoff)
+  let isHeaterOff = false;
+  let statusMessage = "🔥 HEATER IS ON";
+  let boxColor = "#FFF3CD"; // Yellow for ON
+  let borderColor = "#FFEEBA";
+
+  if (sensorData.currentPoolTemp >= 35.0) {
+    isHeaterOff = true;
+    statusMessage = "🛑 HEATER IS OFF (Target 35°C Reached)";
+    boxColor = "#D4EDDA"; // Green for OFF
+    borderColor = "#C3E6CB";
+  } else if (aiResult && aiResult.action === 'TURN_OFF_HEATER') {
+    isHeaterOff = true;
+    statusMessage = "🛑 HEATER IS OFF (AI Energy Saver Active)";
+    boxColor = "#D4EDDA"; // Green for OFF
+    borderColor = "#C3E6CB";
+  }
 
   return (
     <div style={{ padding: '20px', maxWidth: '600px', fontFamily: 'sans-serif' }}>
@@ -92,7 +115,7 @@ export default function EnergyOptimizer() {
         Thermodynamics AI Engine • {isLiveMode ? 'Streaming data from ESP32...' : 'Override sensors for panel presentation.'}
       </p>
 
-      {/* Sensor Input Panel */}
+      {/* 📊 Sensor Input Panel */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
         <div>
           <label style={{ fontWeight: 'bold' }}>Ambient Temp (°C): </label>
@@ -109,7 +132,7 @@ export default function EnergyOptimizer() {
       </div>
 
       <button onClick={triggerAI} disabled={isLoading} style={{ padding: '10px 20px', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-        {isLoading ? '🧠 Calculating...' : '🚀 Run AI "What-If" Simulation'}
+        {isLoading ? '🧠 Calculating Future Temp...' : '🚀 Run AI "What-If" Simulation'}
       </button>
 
       {/* 🎛️ Manual Hardware Control Panel */}
@@ -122,40 +145,41 @@ export default function EnergyOptimizer() {
         </div>
       </div>
 
-      {/* Results & ROI Panel */}
+      {/* 💰 Results & ROI Panel (Always shows math if AI has run) */}
       {aiResult && !aiResult.error && (
-        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: aiResult.action === 'TURN_OFF_HEATER' ? '#D4EDDA' : '#FFF3CD', border: '1px solid', borderColor: aiResult.action === 'TURN_OFF_HEATER' ? '#C3E6CB' : '#FFEEBA', borderRadius: '5px' }}>
+        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: boxColor, border: '1px solid', borderColor: borderColor, borderRadius: '5px' }}>
           <h3 style={{ margin: '0 0 10px 0' }}>🤖 AI Decision:</h3>
           <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>
-            Action: {aiResult.action === 'TURN_OFF_HEATER' ? '🛑 TURN OFF HEATER (Command Sent)' : '🔥 KEEP HEATER ON'}
+            System Status: {statusMessage}
           </p>
 
-          {/* 💰 The Upgraded Money Maker Box! */}
-          {aiResult.action === 'TURN_OFF_HEATER' && (
-            <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #28A745' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#155724' }}>💰 Financial & Energy Savings</h4>
-              
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-                <div style={{ padding: '10px', backgroundColor: '#c3e6cb', borderRadius: '5px', flex: 1 }}>
-                  <strong>⏱️ Next 30 Mins</strong><br/>
-                  Est. Temp: {(sensorData.currentPoolTemp + tempDiff30M).toFixed(2)}°C<br/>
-                  {tempDiff30M >= 0 ? 'Heat Gained' : 'Natural Cooling'}: {Math.abs(tempDiff30M).toFixed(2)}°C<br/>
-                  Free Solar: {getSolarEnergy(0.5)} kWh
-                </div>
-                <div style={{ padding: '10px', backgroundColor: '#c3e6cb', borderRadius: '5px', flex: 1 }}>
-                  <strong>☀️ Next 1 Hour</strong><br/>
-                  Est. Temp: {parseFloat(aiResult.predictedTemp).toFixed(2)}°C<br/>
-                  {tempDiff1H >= 0 ? 'Heat Gained' : 'Natural Cooling'}: {Math.abs(tempDiff1H).toFixed(2)}°C<br/>
-                  Free Solar: {getSolarEnergy(1.0)} kWh
-                </div>
+          {/* This math box now ALWAYS shows up to prove the sun is working! */}
+          <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: `1px dashed ${isHeaterOff ? '#28A745' : '#B5A642'}` }}>
+            <h4 style={{ margin: '0 0 10px 0', color: isHeaterOff ? '#155724' : '#856404' }}>
+              {isHeaterOff ? '💰 Financial & Energy Savings' : '☀️ Natural Energy Intake'}
+            </h4>
+            
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ padding: '10px', backgroundColor: isHeaterOff ? '#c3e6cb' : '#ffeeba', borderRadius: '5px', flex: 1, color: '#000' }}>
+                <strong>⏱️ Next 30 Mins</strong><br/>
+                Est. Temp: {(sensorData.currentPoolTemp + tempDiff30M).toFixed(2)}°C<br/>
+                {tempDiff30M >= 0 ? 'Heat Gained' : 'Natural Cooling'}: {Math.abs(tempDiff30M).toFixed(2)}°C<br/>
+                Free Solar: {getSolarEnergy(0.5)} kWh
               </div>
-
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#155724', lineHeight: '1.8' }}>
-                <li><strong>Grid Electricity Saved:</strong> 30.0 kWh <em>(Assuming 30kW Heater)</em> 🔌</li>
-                <li><strong>CEB Cost Avoided:</strong> <strong>Rs. 1,200.00</strong> 💸</li>
-              </ul>
+              <div style={{ padding: '10px', backgroundColor: isHeaterOff ? '#c3e6cb' : '#ffeeba', borderRadius: '5px', flex: 1, color: '#000' }}>
+                <strong>☀️ Next 1 Hour</strong><br/>
+                Est. Temp: {parseFloat(aiResult.predictedTemp).toFixed(2)}°C<br/>
+                {tempDiff1H >= 0 ? 'Heat Gained' : 'Natural Cooling'}: {Math.abs(tempDiff1H).toFixed(2)}°C<br/>
+                Free Solar: {getSolarEnergy(1.0)} kWh
+              </div>
             </div>
-          )}
+
+            {/* Only show the grid savings money if the heater is actually OFF */}
+            <ul style={{ margin: 0, paddingLeft: '20px', color: isHeaterOff ? '#155724' : '#856404', lineHeight: '1.8' }}>
+              <li><strong>Grid Electricity Saved:</strong> {isHeaterOff ? '30.0' : '0.0'} kWh <em>(Assuming 30kW Heater)</em> 🔌</li>
+              <li><strong>CEB Cost Avoided:</strong> <strong>{isHeaterOff ? 'Rs. 1,200.00' : 'Rs. 0.00 (Heater is burning power)'}</strong> 💸</li>
+            </ul>
+          </div>
         </div>
       )}
     </div>
