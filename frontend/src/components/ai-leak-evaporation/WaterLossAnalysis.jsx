@@ -93,7 +93,13 @@ export default function WaterLossAnalysis() {
   const points = useMemo(() => live?.history?.length ? live.history.map((p, i) => ({ t: p.timestamp || `${i}`, level: Number(p.water_level_cm) })) : previewPoints, [live]);
 
   const display = (v, decimals = 2) => v == null || !Number.isFinite(Number(v)) ? '—' : Number(v).toFixed(decimals);
-  const leakFlag = String(status).toUpperCase().includes('LEAK') || String(status).toUpperCase().includes('ABNORMAL');
+  const normalizedStatus = String(status ?? '').trim().toUpperCase();
+
+const leakFlag = [
+  'POSSIBLE_LEAK',
+  'POSSIBLE_LEAK_OR_ABNORMAL_DROP',
+  'ABNORMAL_DROP_DETECTED',
+].includes(normalizedStatus);
 
   return (
     <main className="wla-page">
