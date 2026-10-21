@@ -149,34 +149,74 @@ function FiltrationModeIcon({ mode = 1, size = 16, className = '' }) {
  * - Declined staff: Red decline badge with decline reason
  * - Add/Assign Staff button
  */
+// Helper to deduplicate staff assignments per slot/task, prioritizing confirmed > pending > rejected
+function getDeduplicatedAssignments(assignments = []) {
+  const map = new Map()
+  const priority = { confirmed: 3, pending_confirmation: 2, rejected: 1 }
+
+  const sorted = [...assignments].sort((a, b) => {
+    const pA = priority[a.status] || 0
+    const pB = priority[b.status] || 0
+    if (pB !== pA) return pB - pA
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  })
+
+  for (const a of sorted) {
+    const key = a.staff_id || a.staff_phone || a.staff_name?.toLowerCase()
+    if (key && !map.has(key)) {
+      map.set(key, a)
+    }
+  }
+
+  return Array.from(map.values())
+}
+
+// Compact name formatter: "Anura Kumara" -> "Anura K."
+function formatCompactName(fullName = '') {
+  if (!fullName) return ''
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]} ${parts[1][0].toUpperCase()}.`
+}
+
+/**
+ * Renders duty assignment badges in a compact horizontal flex layout:
+ * - Deduplicates assignments per slot
+ * - Formats names compactly ("Anura K.")
+ * - Arranges chips horizontally so rows NEVER enlarge vertically
+ */
 function StaffAssignmentBadges({
   assignments = [],
   onCancel,
   onConfirm,
   onAssignMore,
-  buttonLabel = '+ Assign Staff',
+  buttonLabel = 'Assign Staff',
 }) {
-  const confirmed = assignments.filter((a) => a.status === 'confirmed')
-  const pending = assignments.filter((a) => a.status === 'pending_confirmation')
-  const rejected = assignments.filter((a) => a.status === 'rejected')
+  const uniqueAssignments = getDeduplicatedAssignments(assignments)
+  const confirmed = uniqueAssignments.filter((a) => a.status === 'confirmed')
+  const pending = uniqueAssignments.filter((a) => a.status === 'pending_confirmation')
+  const rejected = uniqueAssignments.filter((a) => a.status === 'rejected')
+
+  const hasAnyStaff = uniqueAssignments.length > 0
+  const cleanLabel = (hasAnyStaff ? 'Add' : buttonLabel).replace(/^\+\s*/, '')
 
   return (
-    <div className="po-staff-assignments-wrap">
-      {/* 1. Confirmed Staff (Accepted via WhatsApp) */}
+    <div className="po-staff-roster-row">
+      {/* 1. Confirmed Staff (Single clean tick icon, compact chip) */}
       {confirmed.map((a) => (
         <span
           key={a.id}
           className="po-assigned-pill confirmed"
           title={`Duty Confirmed: ${a.staff_name} (${a.staff_phone})`}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span>✓ Assigned: {a.staff_name}</span>
+          <span className="po-staff-name-text">{formatCompactName(a.staff_name)}</span>
           <button
             type="button"
             className="po-mini-cancel-btn"
-            title="Cancel duty shift (dispatches WhatsApp cancellation notice)"
+            title="Cancel shift (notifies staff via WhatsApp)"
             onClick={(e) => {
               e.stopPropagation()
               onCancel(a)
@@ -187,15 +227,15 @@ function StaffAssignmentBadges({
         </span>
       ))}
 
-      {/* 2. Pending Staff (Awaiting WhatsApp reply) */}
+      {/* 2. Pending Staff (Compact chip with pulsing dot & action buttons) */}
       {pending.map((a) => (
         <span
           key={a.id}
           className="po-assigned-pill pending"
-          title={`Awaiting WhatsApp confirmation from ${a.staff_name} (${a.staff_phone})`}
+          title={`Awaiting WhatsApp confirmation: ${a.staff_name} (${a.staff_phone})`}
         >
           <span className="po-mini-pulse" />
-          <span>⏳ Awaiting: {a.staff_name}</span>
+          <span className="po-staff-name-text">{formatCompactName(a.staff_name)}</span>
           <button
             type="button"
             className="po-mini-action-btn confirm"
@@ -221,29 +261,33 @@ function StaffAssignmentBadges({
         </span>
       ))}
 
-      {/* 3. Declined Staff */}
+      {/* 3. Declined Staff (Compact chip) */}
       {rejected.map((a) => (
         <span
           key={a.id}
           className="po-assigned-pill rejected"
           title={`Declined by ${a.staff_name}: ${a.rejection_reason || 'Unavailable'}`}
         >
-          <span>✕ Declined: {a.staff_name} {a.rejection_reason ? `(${a.rejection_reason})` : ''}</span>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          <span className="po-staff-name-text">Declined: {formatCompactName(a.staff_name)}</span>
         </span>
       ))}
 
-      {/* 4. Assign / Add Staff Button */}
+      {/* 4. Compact Assign / Add Staff Button */}
       <button
         type="button"
-        className="po-btn-assign"
+        className={`po-btn-assign ${hasAnyStaff ? 'compact' : ''}`}
         onClick={onAssignMore}
-        title="Assign staff to this slot/task"
+        title={hasAnyStaff ? 'Assign additional staff to this slot' : 'Assign staff to this slot'}
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        <span>{assignments.length > 0 ? '+ Add Staff' : buttonLabel}</span>
+        <span>{cleanLabel}</span>
       </button>
     </div>
   )
@@ -956,9 +1000,9 @@ export default function PoolOrchestrator() {
                           </div>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start' }}>
-                            <span className="po-staff-pill">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <div className="po-staff-cell-wrap">
+                            <span className="po-staff-guideline" title="Forecast-driven recommended staffing capacity">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -981,7 +1025,7 @@ export default function PoolOrchestrator() {
                                 })
                                 setStaffModalOpen(true)
                               }}
-                              buttonLabel="+ Assign Staff"
+                              buttonLabel="Assign Staff"
                             />
                           </div>
                         </td>

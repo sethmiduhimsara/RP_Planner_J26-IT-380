@@ -746,9 +746,20 @@
 
 /* Operational Resource Plan Table */
 .po-plan-table th {
+  padding: 11px 14px;
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.po-plan-table td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .po-slot-subtext {
@@ -757,15 +768,37 @@
   margin-top: 2px;
 }
 
+.po-staff-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  min-width: 175px;
+}
+
+.po-staff-guideline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 600;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
 .po-staff-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 6px;
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: #1e40af;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
   font-weight: 600;
   font-size: 11px;
 }
@@ -774,7 +807,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 6px;
   background: #ecfdf5;
   border: 1px solid #d1fae5;
@@ -814,7 +847,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 6px;
   background: #fdf4ff;
   border: 1px solid #fae8ff;
@@ -825,9 +858,9 @@
 
 .po-rationale-text {
   font-size: 11px;
-  color: #64748b;
-  line-height: 1.45;
-  max-width: 320px;
+  color: #475569;
+  line-height: 1.4;
+  max-width: 280px;
 }
 
 /* ==========================================================================
@@ -2583,37 +2616,48 @@
   margin-top: 14px;
 }
 
-/* Card Assign Button */
+/* Card & Table Assign Button */
 .po-btn-assign {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 6px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  color: #0284c7;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .po-btn-assign:hover {
   background: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.18);
 }
 
 .po-assigned-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: 5px;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   color: #065f46;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.po-staff-name-text {
+  text-transform: capitalize;
   font-size: 11px;
   font-weight: 600;
 }
@@ -2636,50 +2680,63 @@
   color: #991b1b;
 }
 
+/* Horizontal roster row to prevent vertical height bloat */
+.po-staff-roster-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 .po-staff-assignments-wrap {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   align-items: flex-start;
+  margin-top: 1px;
 }
 
 .po-mini-cancel-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
+  background: transparent;
   color: inherit;
   font-size: 9px;
   font-weight: 700;
   cursor: pointer;
-  margin-left: 3px;
+  margin-left: 2px;
   padding: 0;
+  opacity: 0.6;
   transition: all 0.15s ease;
 }
 
 .po-mini-cancel-btn:hover {
-  background: #ef4444;
-  color: #ffffff;
+  background: #fee2e2;
+  color: #dc2626;
+  opacity: 1;
 }
 
 .po-mini-action-btn.confirm {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
   border: none;
-  background: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.2);
   color: #047857;
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
-  margin-left: 3px;
+  margin-left: 2px;
   padding: 0;
   transition: all 0.15s ease;
 }
