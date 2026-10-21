@@ -23,6 +23,7 @@ class PoolOrchestratorWhatsAppService {
     this.accessToken = DEFAULT_ACCESS_TOKEN;
     this.verifyToken = DEFAULT_VERIFY_TOKEN;
     this.apiVersion = DEFAULT_API_VERSION;
+    this.isInitialized = false;
     this.stats = {
       messagesReceived: 0,
       repliesSent: 0,
@@ -33,37 +34,19 @@ class PoolOrchestratorWhatsAppService {
   }
 
   /**
-   * Initializes database table for WhatsApp customer message audit log
+   * Initializes database table for WhatsApp customer message audit log via schema.sql
    */
   async ensureTable() {
+    if (this.isInitialized) return;
+
     try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS public.whatsapp_messages (
-          id BIGSERIAL PRIMARY KEY,
-          wa_message_id VARCHAR(150),
-          sender_phone VARCHAR(30) NOT NULL,
-          customer_name VARCHAR(100),
-          incoming_text TEXT,
-          reply_text TEXT,
-          status VARCHAR(30) DEFAULT 'replied',
-          sender_role VARCHAR(20) DEFAULT 'bot',
-          received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-
-      // Ensure sender_role column exists if table was created previously
-      await db.query(`
-        ALTER TABLE public.whatsapp_messages 
-        ADD COLUMN IF NOT EXISTS sender_role VARCHAR(20) DEFAULT 'bot';
-      `);
-
-      // Create index on sender_phone for fast conversation retrieval
-      await db.query(`
-        CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_phone 
-        ON public.whatsapp_messages (sender_phone, received_at DESC);
-      `);
+      await db.initSchema();
+      this.isInitialized = true;
     } catch (err) {
       console.warn('[PoolOrchestratorWhatsApp] Message audit table check notice:', err.message);
+      if (err.message && (err.message.includes('already exists') || err.message.includes('duplicate key'))) {
+        this.isInitialized = true;
+      }
     }
   }
 

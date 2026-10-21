@@ -772,9 +772,11 @@ export default function PoolOrchestrator() {
       <div className="po-header-card">
         <div className="po-header-info">
           <div className="po-header-title-row">
-            <h2>{facilityName}</h2>
+            <h2>Predictive Resource Orchestrator</h2>
           </div>
           <div className="po-header-meta">
+            <span className="po-facility-name-meta">{facilityName}</span>
+            <span className="po-meta-bullet" aria-hidden="true">·</span>
             <div className="po-clock-display" aria-label="Current pool local time in Asia/Colombo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />

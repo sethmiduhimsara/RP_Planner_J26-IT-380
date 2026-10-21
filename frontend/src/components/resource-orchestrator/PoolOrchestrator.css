@@ -75,6 +75,11 @@
   flex-wrap: wrap;
 }
 
+.po-facility-name-meta {
+  font-weight: 600;
+  color: #334155;
+}
+
 .po-meta-bullet {
   color: #cbd5e1;
   font-weight: bold;
