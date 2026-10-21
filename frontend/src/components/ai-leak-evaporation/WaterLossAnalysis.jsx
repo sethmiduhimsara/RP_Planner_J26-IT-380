@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './WaterLossAnalysis.css';
 
 const API_BASE = (import.meta?.env?.VITE_WATER_LOSS_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast?latitude=6.9271&longitude=79.8612&current=temperature_2m,relative_humidity_2m,wind_speed_10m,shortwave_radiation&wind_speed_unit=ms';
 
 /* ─── Preview data shown when the API is not reachable ─── */
 const previewPoints = [
@@ -233,9 +234,10 @@ function DropGauge({ observed, predicted }) {
 /* ─────────────────────────────────────────────────────────
    TelemetryBadges
    Environmental input factor cards used by the LSTM model.
-   Shows API values when available, otherwise preview values.
+   Shows Open-Meteo live observation when available,
+   otherwise preview values.
 ───────────────────────────────────────────────────────── */
-function TelemetryBadges({ data, isPreview }) {
+function TelemetryBadges({ data, isLive }) {
   const t = data ?? PREVIEW_TELEMETRY;
   const fmt = (v, d = 1) => v == null || !Number.isFinite(Number(v)) ? '—' : Number(v).toFixed(d);
 
@@ -243,7 +245,7 @@ function TelemetryBadges({ data, isPreview }) {
     { icon: '🌡', label: 'Temperature',  value: `${fmt(t.temperature_c, 1)}°C`,  sub: 'Ambient air' },
     { icon: '💧', label: 'Humidity',     value: `${fmt(t.humidity_pct, 0)} %`,   sub: 'Relative' },
     { icon: '🌬', label: 'Wind speed',   value: `${fmt(t.wind_speed_mps, 1)} m/s`, sub: 'Surface wind' },
-    { icon: '☀',  label: 'Solar rad.',   value: `${fmt(t.solar_rad, 0)} W/m²`,   sub: 'Irradiance' },
+    { icon: '☀',  label: 'Solar rad.',   value: `${fmt(t.solar_rad, 0)} W/m²`,   sub: 'Global irradiance' },
   ];
 
   return (
@@ -256,7 +258,9 @@ function TelemetryBadges({ data, isPreview }) {
             <div className="wla-telem-label">{item.label}</div>
             <div className="wla-telem-sub">{item.sub}</div>
           </div>
-          {isPreview && <span className="wla-telem-sim-badge">SIMULATED</span>}
+          <span className={`wla-telem-badge ${isLive ? 'is-live' : 'is-sim'}`}>
+            {isLive ? '● LIVE' : 'SIMULATED'}
+          </span>
         </div>
       ))}
     </div>
@@ -289,7 +293,10 @@ export default function WaterLossAnalysis() {
   const [apiState, setApiState]     = useState('checking');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [showPreview, setShowPreview] = useState(true);
+  const [weather, setWeather]       = useState(null);
+  const [weatherState, setWeatherState] = useState('checking'); // 'checking' | 'live' | 'fallback'
 
+  /* ── 1. Poll the Python Water Loss API ── */
   useEffect(() => {
     let mounted = true;
     let timer;
@@ -308,6 +315,32 @@ export default function WaterLossAnalysis() {
     };
     load();
     timer = window.setInterval(load, 2500);
+    return () => { mounted = false; window.clearInterval(timer); };
+  }, []);
+
+  /* ── 2. Fetch live environmental data from Open-Meteo ── */
+  useEffect(() => {
+    let mounted = true;
+    let timer;
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(OPEN_METEO_URL);
+        if (!res.ok) throw new Error(`Weather error: ${res.status}`);
+        const data = await res.json();
+        if (!mounted || !data?.current) return;
+        setWeather({
+          temperature_c:  data.current.temperature_2m,
+          humidity_pct:   data.current.relative_humidity_2m,
+          wind_speed_mps: data.current.wind_speed_10m,
+          solar_rad:      data.current.shortwave_radiation,
+        });
+        setWeatherState('live');
+      } catch {
+        if (mounted) setWeatherState('fallback');
+      }
+    };
+    fetchWeather();
+    timer = window.setInterval(fetchWeather, 60000); // 1-minute interval
     return () => { mounted = false; window.clearInterval(timer); };
   }, []);
 
@@ -510,13 +543,19 @@ export default function WaterLossAnalysis() {
         <div className="wla-section-heading">
           <div>
             <h3>LSTM Model Input Factors</h3>
-            <p>Environmental parameters used by the evaporation model</p>
+            <p>
+              {weatherState === 'live'
+                ? 'Real-time observation via Open-Meteo Weather API (Colombo, LK)'
+                : 'Environmental parameters used by the evaporation model'}
+            </p>
           </div>
-          {usingPreview && <span className="wla-sim-tag">SIMULATED VALUES</span>}
+          <span className={`wla-weather-pill ${weatherState === 'live' ? 'live' : 'sim'}`}>
+            {weatherState === 'live' ? '● OPEN-METEO LIVE' : weatherState === 'checking' ? 'FETCHING WEATHER…' : 'SIMULATED VALUES'}
+          </span>
         </div>
         <TelemetryBadges
-          data={live?.telemetry ?? null}
-          isPreview={!live || !live.telemetry}
+          data={weather || live?.telemetry || null}
+          isLive={weatherState === 'live'}
         />
       </section>
 

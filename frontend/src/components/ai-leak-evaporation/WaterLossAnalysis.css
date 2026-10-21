@@ -695,17 +695,31 @@
   margin:    0;
 }
 
-.wla-sim-tag {
+.wla-sim-tag,
+.wla-weather-pill {
   border-radius:  6px;
   padding:        4px 9px;
-  background:     #fef3c7;
-  color:          #92400e;
-  border:         1px solid #fde68a;
   font-size:      9.5px;
   font-weight:    800;
   letter-spacing: .06em;
   white-space:    nowrap;
   flex-shrink:    0;
+  display:        inline-flex;
+  align-items:    center;
+  gap:            6px;
+}
+
+.wla-sim-tag,
+.wla-weather-pill.sim {
+  background:     #fef3c7;
+  color:          #92400e;
+  border:         1px solid #fde68a;
+}
+
+.wla-weather-pill.live {
+  background:     var(--wla-green-light);
+  color:          var(--wla-green);
+  border:         1px solid var(--wla-green-border);
 }
 
 .wla-telem-grid {
@@ -764,18 +778,30 @@
   color:     var(--wla-muted);
 }
 
-.wla-telem-sim-badge {
+.wla-telem-sim-badge,
+.wla-telem-badge {
   position:       absolute;
   top:            8px;
   right:          8px;
   font-size:      8.5px;
   font-weight:    800;
   letter-spacing: .06em;
-  background:     #fef3c7;
-  color:          #92400e;
   border-radius:  4px;
   padding:        2px 6px;
+  white-space:    nowrap;
+}
+
+.wla-telem-sim-badge,
+.wla-telem-badge.is-sim {
+  background:     #fef3c7;
+  color:          #92400e;
   border:         1px solid #fde68a;
+}
+
+.wla-telem-badge.is-live {
+  background:     var(--wla-green-light);
+  color:          var(--wla-green);
+  border:         1px solid var(--wla-green-border);
 }
 
 /* ── Footer ── */
