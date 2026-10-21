@@ -506,6 +506,12 @@ class PoolOrchestratorWhatsAppService {
         if (senderRole === 'manager') {
           await this.ensureTable();
           try {
+            const staffLookup = await db.query(
+              "SELECT name FROM public.facility_staff WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1 LIMIT 1",
+              [cleanTo]
+            ).catch(() => ({ rows: [] }));
+            const recipientName = staffLookup.rows[0]?.name || 'Customer';
+
             await db.query(
               `INSERT INTO public.whatsapp_messages
                 (wa_message_id, sender_phone, customer_name, incoming_text, reply_text, status, sender_role, received_at)
@@ -513,7 +519,7 @@ class PoolOrchestratorWhatsAppService {
               [
                 fbRes.data?.messages?.[0]?.id || `mgr_${Date.now()}`,
                 cleanTo,
-                'Customer',
+                recipientName,
                 body,
               ]
             );
@@ -530,7 +536,7 @@ class PoolOrchestratorWhatsAppService {
   }
 
   /**
-   * Returns grouped customer conversation threads for the manager chat UI
+   * Returns grouped conversation threads classified into customer and staff
    */
   async getConversations() {
     await this.ensureTable();
@@ -538,7 +544,11 @@ class PoolOrchestratorWhatsAppService {
       const res = await db.query(`
         SELECT 
           m.sender_phone,
-          COALESCE(MAX(m.customer_name), 'Customer') AS customer_name,
+          COALESCE(s.name, MAX(m.customer_name), 'Customer') AS customer_name,
+          COALESCE(s.name, MAX(m.customer_name), 'Customer') AS contact_name,
+          s.role AS staff_role,
+          (s.id IS NOT NULL) AS is_staff,
+          s.id AS staff_id,
           COUNT(*) AS total_messages,
           MAX(m.received_at) AS last_activity,
           (
@@ -556,7 +566,9 @@ class PoolOrchestratorWhatsAppService {
             LIMIT 1
           ) AS last_status
         FROM public.whatsapp_messages m
-        GROUP BY m.sender_phone
+        LEFT JOIN public.facility_staff s
+          ON regexp_replace(s.phone, '[^0-9]', '', 'g') = regexp_replace(m.sender_phone, '[^0-9]', '', 'g')
+        GROUP BY m.sender_phone, s.id, s.name, s.role
         ORDER BY MAX(m.received_at) DESC
       `);
       return res.rows;
