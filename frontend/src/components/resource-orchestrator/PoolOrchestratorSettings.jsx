@@ -316,103 +316,211 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
             </div>
 
             <div className="po-thresholds-grid">
-              {/* Low Demand */}
+              {/* Stage 1: Low Demand */}
               <div className="po-threshold-box low">
-                <div className="po-th-header">
-                  <span className="po-th-badge low">Low Demand</span>
-                  <span className="po-relay-stage-tag">Mode 1 — Eco Filtration</span>
+                <div className="po-th-card-header">
+                  <div className="po-th-header-top">
+                    <span className="po-th-stage-pill low">Stage 1</span>
+                    <div className="po-th-relay-indicator" title="1 of 4 Relays Energized (Eco Circulation)">
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led-text">1 Bulb</span>
+                    </div>
+                  </div>
+                  <div className="po-th-header-titles">
+                    <h4 className="po-th-title">Low Demand</h4>
+                    <span className="po-th-mode-badge low">Mode 1 · Eco Filtration</span>
+                  </div>
                 </div>
-                <label htmlFor="low_demand_max">Upper Swimmer Limit (&lt; X swimmers):</label>
-                <div className="po-input-with-unit">
-                  <input
-                    id="low_demand_max"
-                    type="number"
-                    min="1"
-                    max="500"
-                    value={formData.low_demand_max}
-                    onChange={(e) => handleChange('low_demand_max', e.target.value)}
-                    required
-                  />
-                  <span className="po-unit-suffix">swimmers</span>
+
+                <div className="po-th-card-body">
+                  <label htmlFor="low_demand_max" className="po-th-label">
+                    <span>Upper Swimmer Limit</span>
+                    <small className="po-th-limit-rule">(&lt; X swimmers)</small>
+                  </label>
+                  <div className="po-input-with-unit">
+                    <input
+                      id="low_demand_max"
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={formData.low_demand_max}
+                      onChange={(e) => handleChange('low_demand_max', e.target.value)}
+                      required
+                    />
+                    <span className="po-unit-suffix">swimmers</span>
+                  </div>
                 </div>
-                <span className="po-th-hint">0 to {lowVal - 1} swimmers · Low speed · Energy-conscious operation</span>
+
+                <div className="po-th-card-footer">
+                  <span className="po-th-range-pill">0 to {lowVal - 1} swimmers</span>
+                  <p className="po-th-hint">Low speed continuous · Energy-conscious baseline turnover</p>
+                </div>
               </div>
 
-              {/* Moderate Demand */}
+              {/* Stage 2: Moderate Demand */}
               <div className="po-threshold-box moderate">
-                <div className="po-th-header">
-                  <span className="po-th-badge moderate">Moderate Demand</span>
-                  <span className="po-relay-stage-tag">Mode 2 — Standard Filtration</span>
+                <div className="po-th-card-header">
+                  <div className="po-th-header-top">
+                    <span className="po-th-stage-pill moderate">Stage 2</span>
+                    <div className="po-th-relay-indicator" title="2 of 4 Relays Energized (Standard Circulation)">
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led-text">2 Bulbs</span>
+                    </div>
+                  </div>
+                  <div className="po-th-header-titles">
+                    <h4 className="po-th-title">Moderate Demand</h4>
+                    <span className="po-th-mode-badge moderate">Mode 2 · Standard Filtration</span>
+                  </div>
                 </div>
-                <label htmlFor="moderate_demand_max">Upper Swimmer Limit (to Y swimmers):</label>
-                <div className="po-input-with-unit">
-                  <input
-                    id="moderate_demand_max"
-                    type="number"
-                    min={lowVal + 1}
-                    max="500"
-                    value={formData.moderate_demand_max}
-                    onChange={(e) => handleChange('moderate_demand_max', e.target.value)}
-                    required
-                  />
-                  <span className="po-unit-suffix">swimmers</span>
+
+                <div className="po-th-card-body">
+                  <label htmlFor="moderate_demand_max" className="po-th-label">
+                    <span>Upper Swimmer Limit</span>
+                    <small className="po-th-limit-rule">(to Y swimmers)</small>
+                  </label>
+                  <div className="po-input-with-unit">
+                    <input
+                      id="moderate_demand_max"
+                      type="number"
+                      min={lowVal + 1}
+                      max="500"
+                      value={formData.moderate_demand_max}
+                      onChange={(e) => handleChange('moderate_demand_max', e.target.value)}
+                      required
+                    />
+                    <span className="po-unit-suffix">swimmers</span>
+                  </div>
                 </div>
-                <span className="po-th-hint">{lowVal} to {modVal} swimmers · Medium speed · Normal operation</span>
+
+                <div className="po-th-card-footer">
+                  <span className="po-th-range-pill">{lowVal} to {modVal} swimmers</span>
+                  <p className="po-th-hint">Medium speed circulation · Standard daytime turnover</p>
+                </div>
               </div>
 
-              {/* High Demand */}
+              {/* Stage 3: High Demand */}
               <div className="po-threshold-box high">
-                <div className="po-th-header">
-                  <span className="po-th-badge high">High Demand</span>
-                  <span className="po-relay-stage-tag">Mode 3 — Boost Filtration</span>
+                <div className="po-th-card-header">
+                  <div className="po-th-header-top">
+                    <span className="po-th-stage-pill high">Stage 3</span>
+                    <div className="po-th-relay-indicator" title="3 of 4 Relays Energized (Boost Filtration)">
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led active" />
+                      <span className="po-relay-led" />
+                      <span className="po-relay-led-text">3 Bulbs</span>
+                    </div>
+                  </div>
+                  <div className="po-th-header-titles">
+                    <h4 className="po-th-title">High Demand</h4>
+                    <span className="po-th-mode-badge high">Mode 3 · Boost Filtration</span>
+                  </div>
                 </div>
-                <label htmlFor="high_demand_max">Upper Swimmer Limit (to Z swimmers):</label>
-                <div className="po-input-with-unit">
-                  <input
-                    id="high_demand_max"
-                    type="number"
-                    min={modVal + 1}
-                    max="500"
-                    value={formData.high_demand_max}
-                    onChange={(e) => handleChange('high_demand_max', e.target.value)}
-                    required
-                  />
-                  <span className="po-unit-suffix">swimmers</span>
+
+                <div className="po-th-card-body">
+                  <label htmlFor="high_demand_max" className="po-th-label">
+                    <span>Upper Swimmer Limit</span>
+                    <small className="po-th-limit-rule">(to Z swimmers)</small>
+                  </label>
+                  <div className="po-input-with-unit">
+                    <input
+                      id="high_demand_max"
+                      type="number"
+                      min={modVal + 1}
+                      max="500"
+                      value={formData.high_demand_max}
+                      onChange={(e) => handleChange('high_demand_max', e.target.value)}
+                      required
+                    />
+                    <span className="po-unit-suffix">swimmers</span>
+                  </div>
                 </div>
-                <span className="po-th-hint">{modVal + 1} to {highVal} swimmers · High speed · Increased filtration demand</span>
+
+                <div className="po-th-card-footer">
+                  <span className="po-th-range-pill">{modVal + 1} to {highVal} swimmers</span>
+                  <p className="po-th-hint">High speed boost · Accelerated turnover for heavy bather load</p>
+                </div>
               </div>
 
-              {/* Very High Demand */}
+              {/* Stage 4: Very High Demand */}
               <div className="po-threshold-box very-high">
-                <div className="po-th-header">
-                  <span className="po-th-badge very-high">Very High Demand</span>
-                  <span className="po-relay-stage-tag">Mode 4 — Peak Filtration</span>
+                <div className="po-th-card-header">
+                  <div className="po-th-header-top">
+                    <span className="po-th-stage-pill very-high">Stage 4</span>
+                    <div className="po-th-relay-indicator" title="4 of 4 Relays Energized (Peak Capacity)">
+                      <span className="po-relay-led active alert" />
+                      <span className="po-relay-led active alert" />
+                      <span className="po-relay-led active alert" />
+                      <span className="po-relay-led active alert" />
+                      <span className="po-relay-led-text">4 Bulbs</span>
+                    </div>
+                  </div>
+                  <div className="po-th-header-titles">
+                    <h4 className="po-th-title">Very High Demand</h4>
+                    <span className="po-th-mode-badge very-high">Mode 4 · Peak Filtration</span>
+                  </div>
                 </div>
-                <label>Automatic Trigger Level:</label>
-                <div className="po-static-value">&gt; {highVal} swimmers</div>
-                <span className="po-th-hint">{highVal + 1}+ swimmers · Maximum permitted speed · Peak demand</span>
+
+                <div className="po-th-card-body">
+                  <label className="po-th-label">
+                    <span>Trigger Threshold</span>
+                    <small className="po-th-limit-rule">(auto-computed)</small>
+                  </label>
+                  <div className="po-input-with-unit po-input-readonly-wrap">
+                    <input
+                      type="text"
+                      value={`> ${highVal}`}
+                      readOnly
+                      disabled
+                      className="po-input-readonly"
+                      aria-label="Automatic trigger above high demand limit"
+                    />
+                    <span className="po-unit-suffix">swimmers</span>
+                  </div>
+                </div>
+
+                <div className="po-th-card-footer">
+                  <span className="po-th-range-pill very-high">{highVal + 1}+ swimmers</span>
+                  <p className="po-th-hint">Maximum pump velocity · Peak emergency bather clearance</p>
+                </div>
               </div>
             </div>
 
             {/* Visual Capacity Preview Bar */}
             <div className="po-capacity-preview">
-              <label>Continuous Capacity Allocation Preview:</label>
+              <div className="po-capacity-preview-head">
+                <div className="po-capacity-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                  <span>Continuous Capacity Allocation Preview</span>
+                </div>
+                <span className="po-capacity-hint">Dynamic filtration bands automatically scaled by your configured thresholds</span>
+              </div>
               <div className="po-preview-bar">
                 <div className="po-bar-seg low" style={{ flex: lowVal }}>
-                  <span>Low (&lt;{lowVal})</span>
-                  <small>Mode 1 · Eco Filtration</small>
+                  <span className="po-seg-label">Low (&lt;{lowVal})</span>
+                  <small className="po-seg-sub">Mode 1 · Eco (1 Bulb)</small>
                 </div>
                 <div className="po-bar-seg moderate" style={{ flex: Math.max(5, modVal - lowVal) }}>
-                  <span>Moderate ({lowVal}–{modVal})</span>
-                  <small>Mode 2 · Standard Filtration</small>
+                  <span className="po-seg-label">Moderate ({lowVal}–{modVal})</span>
+                  <small className="po-seg-sub">Mode 2 · Standard (2 Bulbs)</small>
                 </div>
                 <div className="po-bar-seg high" style={{ flex: Math.max(5, highVal - modVal) }}>
-                  <span>High ({modVal + 1}–{highVal})</span>
-                  <small>Mode 3 · Boost Filtration</small>
+                  <span className="po-seg-label">High ({modVal + 1}–{highVal})</span>
+                  <small className="po-seg-sub">Mode 3 · Boost (3 Bulbs)</small>
                 </div>
                 <div className="po-bar-seg very-high" style={{ flex: 15 }}>
-                  <span>Very High (&gt;{highVal})</span>
-                  <small>Mode 4 · Peak Filtration</small>
+                  <span className="po-seg-label">Very High (&gt;{highVal})</span>
+                  <small className="po-seg-sub">Mode 4 · Peak (4 Bulbs)</small>
                 </div>
               </div>
             </div>
