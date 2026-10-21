@@ -45,8 +45,8 @@ export default function Sidebar({
         },
         {
           id: 'resource',
-          title: 'Environmental Data',
-          icon: 'fa-solid fa-cloud-sun',
+          title: 'Resource Orchestrator',
+          icon: 'fa-solid fa-chart-line',
         },
       ],
     },

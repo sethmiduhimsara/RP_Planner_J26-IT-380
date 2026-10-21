@@ -366,7 +366,7 @@ class PoolOrchestratorWhatsAppService {
       return (
         `📊 *Future Swimmer Demand Forecast*\n` +
         `Facility: *${poolName}*\n\n` +
-        `Upcoming hourly predictions (AI Random Forest model):\n` +
+        `Upcoming hourly predictions (Random Forest model):\n` +
         `${forecastLinesText}\n\n` +
         `${bestTimeMessage}\n\n` +
         `🌦️ *Expected Weather:* Fair swimming conditions with pleasant water temperature.\n\n` +

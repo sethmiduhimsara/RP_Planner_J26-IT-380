@@ -13,12 +13,12 @@ export default function Dashboard({ onNavigateHome }) {
 
   // Breadcrumb / title mapping for all menu items
   const titles = {
-    summary: 'Dashboard Overview',
+    summary: 'System Summary & Operations',
     'pool-overview': 'Pool Overview & Telemetry',
-    pump: 'Pump Health & Vibration Diagnostics',
-    leak: 'Water Loss & Structural Leak Tracker',
-    energy: 'Heating Optimization System',
-    resource: 'Environmental Data & Planning',
+    pump: 'Edge-AI Pump Predictive Maintenance',
+    leak: 'AI Water Loss & Structural Leak Tracker',
+    energy: 'Algorithmic Energy Optimization System',
+    resource: 'Predictive Resource Orchestrator',
     sensors: 'Sensor Devices & Hardware Telemetry',
     alerts: 'Alerts & Operational Events',
     research: 'Research Insights & Analysis',
