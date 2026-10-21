@@ -69,6 +69,8 @@ class PoolOrchestratorResourcePlanService {
           rationale: staffing.rationale,
         },
         filtration: {
+          stage: filtration.stage,
+          bulbs: filtration.bulbs,
           recommendation: filtration.recommendation,
           mode: filtration.mode,
           requiresApproval: filtration.requiresApproval,

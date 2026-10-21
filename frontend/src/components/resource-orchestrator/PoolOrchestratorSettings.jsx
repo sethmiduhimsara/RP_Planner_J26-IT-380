@@ -320,7 +320,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
               <div className="po-threshold-box low">
                 <div className="po-th-header">
                   <span className="po-th-badge low">Low Demand</span>
-                  <span className="po-relay-stage-tag">Stage 1 (R1 Active)</span>
+                  <span className="po-relay-stage-tag">Mode 1 — Eco Filtration</span>
                 </div>
                 <label htmlFor="low_demand_max">Upper Swimmer Limit (&lt; X swimmers):</label>
                 <div className="po-input-with-unit">
@@ -335,14 +335,14 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   />
                   <span className="po-unit-suffix">swimmers</span>
                 </div>
-                <span className="po-th-hint">0 to {lowVal - 1} swimmers · Mandatory baseline circulation</span>
+                <span className="po-th-hint">0 to {lowVal - 1} swimmers · Low speed · Energy-conscious operation</span>
               </div>
 
               {/* Moderate Demand */}
               <div className="po-threshold-box moderate">
                 <div className="po-th-header">
                   <span className="po-th-badge moderate">Moderate Demand</span>
-                  <span className="po-relay-stage-tag">Stage 2 (R1-R2 Active)</span>
+                  <span className="po-relay-stage-tag">Mode 2 — Standard Filtration</span>
                 </div>
                 <label htmlFor="moderate_demand_max">Upper Swimmer Limit (to Y swimmers):</label>
                 <div className="po-input-with-unit">
@@ -357,14 +357,14 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   />
                   <span className="po-unit-suffix">swimmers</span>
                 </div>
-                <span className="po-th-hint">{lowVal} to {modVal} swimmers · Standard daily circulation</span>
+                <span className="po-th-hint">{lowVal} to {modVal} swimmers · Medium speed · Normal operation</span>
               </div>
 
               {/* High Demand */}
               <div className="po-threshold-box high">
                 <div className="po-th-header">
                   <span className="po-th-badge high">High Demand</span>
-                  <span className="po-relay-stage-tag">Stage 3 (R1-R3 Active)</span>
+                  <span className="po-relay-stage-tag">Mode 3 — Boost Filtration</span>
                 </div>
                 <label htmlFor="high_demand_max">Upper Swimmer Limit (to Z swimmers):</label>
                 <div className="po-input-with-unit">
@@ -379,18 +379,18 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   />
                   <span className="po-unit-suffix">swimmers</span>
                 </div>
-                <span className="po-th-hint">{modVal + 1} to {highVal} swimmers · Elevated turnover capacity</span>
+                <span className="po-th-hint">{modVal + 1} to {highVal} swimmers · High speed · Increased filtration demand</span>
               </div>
 
               {/* Very High Demand */}
               <div className="po-threshold-box very-high">
                 <div className="po-th-header">
                   <span className="po-th-badge very-high">Very High Demand</span>
-                  <span className="po-relay-stage-tag">Stage 4 (All 4 Relays)</span>
+                  <span className="po-relay-stage-tag">Mode 4 — Peak Filtration</span>
                 </div>
                 <label>Automatic Trigger Level:</label>
                 <div className="po-static-value">&gt; {highVal} swimmers</div>
-                <span className="po-th-hint">{highVal + 1}+ swimmers · Maximum turnover load (Manager alert)</span>
+                <span className="po-th-hint">{highVal + 1}+ swimmers · Maximum permitted speed · Peak demand</span>
               </div>
             </div>
 
@@ -400,19 +400,19 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
               <div className="po-preview-bar">
                 <div className="po-bar-seg low" style={{ flex: lowVal }}>
                   <span>Low (&lt;{lowVal})</span>
-                  <small>Stage 1 · 1 Relay</small>
+                  <small>Mode 1 · Eco Filtration</small>
                 </div>
                 <div className="po-bar-seg moderate" style={{ flex: Math.max(5, modVal - lowVal) }}>
                   <span>Moderate ({lowVal}–{modVal})</span>
-                  <small>Stage 2 · 2 Relays</small>
+                  <small>Mode 2 · Standard Filtration</small>
                 </div>
                 <div className="po-bar-seg high" style={{ flex: Math.max(5, highVal - modVal) }}>
                   <span>High ({modVal + 1}–{highVal})</span>
-                  <small>Stage 3 · 3 Relays</small>
+                  <small>Mode 3 · Boost Filtration</small>
                 </div>
                 <div className="po-bar-seg very-high" style={{ flex: 15 }}>
                   <span>Very High (&gt;{highVal})</span>
-                  <small>Stage 4 · 4 Relays</small>
+                  <small>Mode 4 · Peak Filtration</small>
                 </div>
               </div>
             </div>

@@ -28,6 +28,8 @@ class PoolOrchestratorSettingsService {
   constructor() {
     this.cachedSettings = { ...DEFAULT_SETTINGS };
     this.isInitialized = false;
+    this.lastFetchedAt = 0;
+    this.lastAppliedHash = '';
   }
 
   /**
@@ -80,6 +82,9 @@ class PoolOrchestratorSettingsService {
       this.isInitialized = true;
     } catch (err) {
       console.warn('[PoolOrchestratorSettings] Table check notice:', err.message);
+      if (err.message && (err.message.includes('already exists') || err.message.includes('duplicate key'))) {
+        this.isInitialized = true;
+      }
     }
   }
 
@@ -87,6 +92,12 @@ class PoolOrchestratorSettingsService {
    * Returns current active settings from database (falling back to defaults)
    */
   async getSettings() {
+    const now = Date.now();
+    // Cache in memory for 10 seconds to prevent hammering database on rapid polling
+    if (this.lastFetchedAt && now - this.lastFetchedAt < 10000) {
+      return this.cachedSettings;
+    }
+
     await this.ensureTable();
 
     try {
@@ -111,11 +122,18 @@ class PoolOrchestratorSettingsService {
           updated_at: row.updated_at,
         };
       }
+      this.lastFetchedAt = now;
     } catch (err) {
       console.warn('[PoolOrchestratorSettings] Failed to fetch settings from DB, using cached:', err.message);
+      this.lastFetchedAt = now;
     }
 
-    this._applyToServices(this.cachedSettings);
+    const currentHash = JSON.stringify(this.cachedSettings);
+    if (currentHash !== this.lastAppliedHash) {
+      this._applyToServices(this.cachedSettings);
+      this.lastAppliedHash = currentHash;
+    }
+
     return this.cachedSettings;
   }
 
@@ -187,6 +205,9 @@ class PoolOrchestratorSettingsService {
       auto_retrain_interval: parseInt(savedRow.auto_retrain_interval, 10),
       updated_at: savedRow.updated_at,
     };
+
+    this.lastFetchedAt = Date.now();
+    this.lastAppliedHash = JSON.stringify(this.cachedSettings);
 
     // Propagate to operational rule services
     this._applyToServices(this.cachedSettings);
