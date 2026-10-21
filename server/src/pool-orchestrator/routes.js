@@ -23,6 +23,7 @@ const { defaultMqttService } = require('./poolOrchestratorMqttService');
 const { defaultAutoRetrainService } = require('./poolOrchestratorAutoRetrainService');
 const { defaultSettingsService } = require('./poolOrchestratorSettingsService');
 const { defaultWhatsAppService } = require('./poolOrchestratorWhatsAppService');
+const { defaultStaffService } = require('./poolOrchestratorStaffService');
 const { format12HourTime, formatDateWithTime, POOL_TIMEZONE } = require('./poolOrchestratorTimeUtils');
 
 const router = express.Router();
@@ -87,7 +88,10 @@ router.get('/latest', async (req, res, next) => {
     const currentSwimmers = occupancy?.occupancy_count ?? reading?.swimmer_count ?? 0;
     const bulbRecommendation = defaultFiltrationService.getBulbRelayStateForOccupancy(currentSwimmers);
 
-    const settings = await defaultSettingsService.getSettings();
+    const [settings, staffAssignments] = await Promise.all([
+      defaultSettingsService.getSettings(),
+      defaultStaffService.getAssignments(20).catch(() => []),
+    ]);
 
     res.json({
       facilityName: settings.pool_name || process.env.POOL_NAME || 'Aquatic Centre Main Pool',
@@ -100,6 +104,7 @@ router.get('/latest', async (req, res, next) => {
       weatherConfigured: defaultWeatherService.isConfigured(),
       forecastStatus,
       resourcePlan,
+      staffAssignments,
     });
   } catch (error) {
     next(error);
@@ -443,6 +448,104 @@ router.get('/whatsapp/status', async (req, res, next) => {
     res.json({ status, messages });
   } catch (error) {
     next(error);
+  }
+});
+
+/**
+ * Returns facility staff members
+ */
+router.get('/staff', async (req, res, next) => {
+  try {
+    const staff = await defaultStaffService.getStaffMembers();
+    res.json({ success: true, staff });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Adds a new staff member to the facility roster
+ */
+router.post('/staff', async (req, res, next) => {
+  try {
+    const staff = await defaultStaffService.addStaffMember(req.body);
+    res.json({ success: true, staff });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Deletes a staff member from the facility roster
+ */
+router.delete('/staff/:id', async (req, res, next) => {
+  try {
+    const result = await defaultStaffService.deleteStaffMember(req.params.id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Returns duty assignment audit history
+ */
+router.get('/staff/assignments', async (req, res, next) => {
+  try {
+    const assignments = await defaultStaffService.getAssignments(50);
+    res.json({ success: true, assignments });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Assigns staff to a duty slot/task and dispatches WhatsApp notification
+ */
+router.post('/staff/assign', async (req, res, next) => {
+  try {
+    const result = await defaultStaffService.assignStaff(req.body);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Cancels a staff duty assignment and dispatches cancellation WhatsApp notification
+ */
+router.post('/staff/assignments/:id/cancel', async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const result = await defaultStaffService.cancelAssignment(req.params.id, reason);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Manually confirms a staff duty assignment
+ */
+router.post('/staff/assignments/:id/confirm', async (req, res, next) => {
+  try {
+    const result = await defaultStaffService.confirmAssignment(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Manually rejects a staff duty assignment
+ */
+router.post('/staff/assignments/:id/reject', async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const result = await defaultStaffService.rejectAssignment(req.params.id, reason);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
