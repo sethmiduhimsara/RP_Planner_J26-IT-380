@@ -1,144 +1,567 @@
 /* ==========================================================================
-   Edge-AI Pump Predictive Maintenance Component
-   Team Member 01 Component Styles
+   Edge-AI Pump Predictive Maintenance - Presentation UI Styles
+   Component: Motor Vibration Monitoring (ESP32 + ADXL345 + TinyML)
+   Project ID: J26-IT-380
    ========================================================================== */
 
-.motor-vibration-view {
+.mv-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+  animation: mv-fade-in 0.3s ease-in-out;
 }
 
-.mv-header-card {
+@keyframes mv-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   Header Card
+   -------------------------------------------------------------------------- */
+.mv-header {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 24px;
+  padding: 24px 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
-.mv-header-info h2 {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #0f172a;
+.mv-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
-.mv-header-info h2 i {
-  color: #4f46e5; /* Pump Violet / Indigo */
+.mv-icon-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  flex-shrink: 0;
 }
 
-.mv-header-info p {
-  font-size: 0.9rem;
+.mv-header-title h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mv-header-title p {
+  font-size: 0.88rem;
   color: #64748b;
   margin-top: 4px;
 }
 
-.mv-hardware-badge {
-  display: inline-flex;
+.mv-header-tags {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: #eef2ff;
-  color: #4338ca;
-  border: 1px solid #c7d2fe;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.mv-grid-stats {
+.mv-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.mv-tag-primary {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.mv-tag-success {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.mv-tag-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  animation: mv-pulse 2s infinite;
+}
+
+@keyframes mv-pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+  70% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   Interactive Simulation Controls (Demo Tool for Academic Presentation)
+   -------------------------------------------------------------------------- */
+.mv-demo-bar {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.mv-demo-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mv-demo-label i {
+  color: #4f46e5;
+  font-size: 1rem;
+}
+
+.mv-demo-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mv-demo-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mv-demo-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.mv-demo-btn.is-active {
+  background-color: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.mv-demo-btn.is-warning.is-active {
+  background-color: #d97706;
+  border-color: #d97706;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+}
+
+.mv-demo-btn.is-danger.is-active {
+  background-color: #dc2626;
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   KPI Metric Cards Grid
+   -------------------------------------------------------------------------- */
+.mv-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
-.mv-stat-box {
+.mv-kpi-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 20px 22px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.mv-stat-box small {
-  font-size: 0.75rem;
-  font-weight: 600;
+.mv-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #4f46e5;
+}
+
+.mv-kpi-card.state-warn::before { background-color: #d97706; }
+.mv-kpi-card.state-danger::before { background-color: #dc2626; }
+.mv-kpi-card.state-ok::before { background-color: #16a34a; }
+
+.mv-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.mv-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.mv-kpi-label {
+  font-size: 0.76rem;
+  font-weight: 700;
   text-transform: uppercase;
   color: #64748b;
   letter-spacing: 0.05em;
 }
 
-.mv-stat-box h3 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 6px 0;
+.mv-kpi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  background-color: #eef2ff;
+  color: #4f46e5;
 }
 
-.mv-stat-box p {
+.mv-kpi-val {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.mv-kpi-unit {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.mv-kpi-sub {
   font-size: 0.8rem;
-  color: #16a34a;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.mv-content-card {
+.sub-ok { color: #16a34a; }
+.sub-warn { color: #d97706; }
+.sub-danger { color: #dc2626; }
+
+/* --------------------------------------------------------------------------
+   Charts & Diagnostics Layout (2 Columns)
+   -------------------------------------------------------------------------- */
+.mv-charts-row {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 20px;
+}
+
+.mv-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 28px;
+  padding: 24px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
 }
 
-.mv-placeholder-banner {
-  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
-  border: 1px dashed #c7d2fe;
+.mv-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mv-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mv-card-title h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mv-card-title i {
+  color: #4f46e5;
+  font-size: 1rem;
+}
+
+.mv-tab-selector {
+  display: flex;
+  gap: 4px;
+  background-color: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.mv-tab-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mv-tab-btn.is-active {
+  background-color: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* SVG Chart Box */
+.mv-chart-box {
+  width: 100%;
+  height: 200px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 36px 24px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mv-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mv-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.mv-legend-group {
+  display: flex;
+  gap: 16px;
+}
+
+.mv-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mv-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* --------------------------------------------------------------------------
+   ISO 10816 Severity Scale & Anomaly Probabilities
+   -------------------------------------------------------------------------- */
+.mv-severity-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mv-iso-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.mv-iso-zone {
+  height: 100%;
+  position: relative;
+}
+
+.zone-a { background-color: #22c55e; } /* Good */
+.zone-b { background-color: #84cc16; } /* Satisfactory */
+.zone-c { background-color: #f59e0b; } /* Alert */
+.zone-d { background-color: #ef4444; } /* Danger */
+
+.mv-iso-labels {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  font-size: 0.7rem;
+  color: #64748b;
   text-align: center;
+  margin-top: 4px;
 }
 
-.mv-placeholder-banner i {
-  font-size: 2.2rem;
-  color: #6366f1;
-  margin-bottom: 12px;
+/* Probability Bars */
+.mv-prob-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
 }
 
-.mv-placeholder-banner h4 {
+.mv-prob-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mv-prob-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mv-prob-track {
+  height: 8px;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.mv-prob-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+/* --------------------------------------------------------------------------
+   Bottom Row: Dataset Pipeline & Tri-Axial Telemetry
+   -------------------------------------------------------------------------- */
+.mv-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.mv-axis-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.mv-axis-info small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.mv-axis-info h4 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #312e81;
-  margin-bottom: 6px;
+  color: #0f172a;
+  margin-top: 2px;
 }
 
-.mv-placeholder-banner p {
-  font-size: 0.92rem;
+.mv-pipeline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mv-pipeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.mv-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #eef2ff;
   color: #4f46e5;
-  max-width: 580px;
-  margin: 0 auto;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
-  .mv-grid-stats {
+/* --------------------------------------------------------------------------
+   Responsive Design
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .mv-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .mv-charts-row {
+    grid-template-columns: 1fr;
+  }
+  .mv-bottom-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-@media (max-width: 600px) {
-  .mv-header-card {
+@media (max-width: 650px) {
+  .mv-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .mv-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
   }
-  .mv-grid-stats {
-    grid-template-columns: 1fr;
+  .mv-demo-bar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

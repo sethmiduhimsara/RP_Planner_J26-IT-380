@@ -31,10 +31,32 @@
   z-index: 20;
 }
 
+/* Dashboard Topbar Left & Mobile Menu Button */
 .dashboard-topbar-left {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.db-mobile-menu-btn {
+  display: none;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 1.15rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.db-mobile-menu-btn:hover {
+  background-color: #e2e8f0;
+  color: #0284c7;
 }
 
 .dashboard-breadcrumbs {
@@ -43,17 +65,23 @@
   gap: 8px;
   font-size: 0.88rem;
   color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-breadcrumbs span.active {
   color: #0284c7;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-topbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .db-status-chip {
@@ -66,6 +94,7 @@
   border-radius: 9999px;
   font-size: 0.78rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .db-user-avatar {
@@ -80,6 +109,7 @@
   font-weight: 700;
   font-size: 0.9rem;
   border: 1px solid #bae6fd;
+  flex-shrink: 0;
 }
 
 /* Dashboard Body Content */
@@ -186,8 +216,50 @@
   gap: 4px;
 }
 
+/* --------------------------------------------------------------------------
+   Mobile & Tablet Responsiveness (< 900px)
+   -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
+  .db-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .dashboard-topbar {
+    padding: 0 16px;
+    height: 58px;
+  }
+
+  .dashboard-content {
+    padding: 20px 16px;
+  }
+
+  .dashboard-breadcrumbs .db-bc-root,
+  .dashboard-breadcrumbs .db-bc-arrow {
+    display: none;
+  }
+
   .db-grid-preview {
     grid-template-columns: 1fr;
+  }
+
+  .db-status-chip {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-topbar {
+    padding: 0 12px;
+  }
+
+  .dashboard-content {
+    padding: 16px 12px;
+  }
+
+  .db-user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
   }
 }
