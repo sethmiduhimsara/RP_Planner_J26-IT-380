@@ -41,78 +41,19 @@ class PoolOrchestratorStaffService {
   }
 
   /**
-   * Initializes staff and task assignment tables in PostgreSQL
+   * Initializes staff and task assignment tables via schema.sql
    */
   async ensureTables() {
     if (this.isInitialized) return;
 
     try {
-      // 1. Staff roster table
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS public.facility_staff (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(100) NOT NULL,
-          role VARCHAR(60) NOT NULL,
-          phone VARCHAR(30) NOT NULL,
-          status VARCHAR(20) DEFAULT 'available',
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        )
-      `);
-
-      // 2. Staff duty assignment audit table
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS public.staff_assignments (
-          id SERIAL PRIMARY KEY,
-          staff_id INTEGER REFERENCES public.facility_staff(id) ON DELETE SET NULL,
-          staff_name VARCHAR(100) NOT NULL,
-          staff_phone VARCHAR(30) NOT NULL,
-          task_title VARCHAR(150) NOT NULL,
-          task_category VARCHAR(60) DEFAULT 'Lifeguard Duty',
-          time_slot VARCHAR(60) NOT NULL,
-          slot_date VARCHAR(30) NOT NULL,
-          expected_swimmers INTEGER DEFAULT 0,
-          demand_level VARCHAR(30) DEFAULT 'Moderate',
-          operational_notes TEXT,
-          assigned_by VARCHAR(60) DEFAULT 'Facility Manager',
-          status VARCHAR(30) DEFAULT 'pending_confirmation',
-          rejection_reason TEXT,
-          cancellation_reason TEXT,
-          confirmed_at TIMESTAMPTZ,
-          cancelled_at TIMESTAMPTZ,
-          whatsapp_status VARCHAR(30) DEFAULT 'sent',
-          whatsapp_message_id VARCHAR(100),
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        )
-      `);
-
-      // Ensure new columns exist if table was created previously
-      const schemaAlters = [
-        "ALTER TABLE public.staff_assignments ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'pending_confirmation'",
-        "ALTER TABLE public.staff_assignments ADD COLUMN IF NOT EXISTS rejection_reason TEXT",
-        "ALTER TABLE public.staff_assignments ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
-        "ALTER TABLE public.staff_assignments ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ",
-        "ALTER TABLE public.staff_assignments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ",
-      ];
-      for (const alterQuery of schemaAlters) {
-        await db.query(alterQuery).catch(() => {});
-      }
-
-      // Seed default staff if table is empty
-      const countRes = await db.query('SELECT COUNT(*) AS count FROM public.facility_staff');
-      if (parseInt(countRes.rows[0]?.count || '0', 10) === 0) {
-        for (const s of DEFAULT_STAFF) {
-          await db.query(
-            `INSERT INTO public.facility_staff (name, role, phone, status)
-             VALUES ($1, $2, $3, $4)`,
-            [s.name, s.role, s.phone, s.status]
-          );
-        }
-        console.log('[PoolOrchestratorStaffService] Seeded default facility staff roster.');
-      }
-
+      await db.initSchema();
       this.isInitialized = true;
     } catch (err) {
       console.warn('[PoolOrchestratorStaffService] Table setup notice:', err.message);
+      if (err.message && (err.message.includes('already exists') || err.message.includes('duplicate key'))) {
+        this.isInitialized = true;
+      }
     }
   }
 

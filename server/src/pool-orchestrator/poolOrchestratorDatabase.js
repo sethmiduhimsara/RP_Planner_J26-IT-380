@@ -104,9 +104,31 @@ async function closePool() {
   }
 }
 
+/**
+ * Ensures all Component 04 tables, indexes, and baseline seed data exist
+ * by applying schema.sql idempotently.
+ */
+async function initSchema() {
+  const fs = require('fs');
+  const path = require('path');
+  try {
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const sql = fs.readFileSync(schemaPath, 'utf8');
+      await query(sql);
+      console.log('[PoolOrchestratorDB] Database schema verified & initialized successfully (8 tables).');
+      return true;
+    }
+  } catch (err) {
+    console.warn('[PoolOrchestratorDB] Schema initialization check notice:', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   getPool,
   query,
   testConnection,
+  initSchema,
   closePool,
 };

@@ -33,52 +33,13 @@ class PoolOrchestratorSettingsService {
   }
 
   /**
-   * Initializes the settings table in PostgreSQL if not already present
+   * Initializes database schema from schema.sql if not already present
    */
   async ensureTable() {
     if (this.isInitialized) return;
 
     try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS public.pool_orchestrator_settings (
-          id VARCHAR(50) PRIMARY KEY DEFAULT 'current',
-          pool_name VARCHAR(100) NOT NULL DEFAULT 'Colombo Aquatic Centre Main Pool',
-          low_demand_max INTEGER NOT NULL DEFAULT 15,
-          moderate_demand_max INTEGER NOT NULL DEFAULT 30,
-          high_demand_max INTEGER NOT NULL DEFAULT 45,
-          swimmer_to_lifeguard_ratio INTEGER NOT NULL DEFAULT 20,
-          min_lifeguards INTEGER NOT NULL DEFAULT 1,
-          min_operational_staff INTEGER NOT NULL DEFAULT 1,
-          opening_hour INTEGER NOT NULL DEFAULT 6,
-          closing_hour INTEGER NOT NULL DEFAULT 22,
-          auto_retrain_interval INTEGER NOT NULL DEFAULT 100,
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-
-      // Seed baseline record if missing
-      await db.query(
-        `INSERT INTO public.pool_orchestrator_settings
-          (id, pool_name, low_demand_max, moderate_demand_max, high_demand_max,
-           swimmer_to_lifeguard_ratio, min_lifeguards, min_operational_staff,
-           opening_hour, closing_hour, auto_retrain_interval, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        [
-          DEFAULT_SETTINGS.id,
-          DEFAULT_SETTINGS.pool_name,
-          DEFAULT_SETTINGS.low_demand_max,
-          DEFAULT_SETTINGS.moderate_demand_max,
-          DEFAULT_SETTINGS.high_demand_max,
-          DEFAULT_SETTINGS.swimmer_to_lifeguard_ratio,
-          DEFAULT_SETTINGS.min_lifeguards,
-          DEFAULT_SETTINGS.min_operational_staff,
-          DEFAULT_SETTINGS.opening_hour,
-          DEFAULT_SETTINGS.closing_hour,
-          DEFAULT_SETTINGS.auto_retrain_interval,
-        ]
-      );
-
+      await db.initSchema();
       this.isInitialized = true;
     } catch (err) {
       console.warn('[PoolOrchestratorSettings] Table check notice:', err.message);

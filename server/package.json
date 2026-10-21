@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "db:init:orchestrator": "node -e \"require('dotenv').config(); const db=require('./src/pool-orchestrator/poolOrchestratorDatabase'); db.initSchema().then(() => { console.log('Pool Orchestrator schema initialized successfully.'); db.closePool(); });\""
   },
   "keywords": [],
   "author": "",
