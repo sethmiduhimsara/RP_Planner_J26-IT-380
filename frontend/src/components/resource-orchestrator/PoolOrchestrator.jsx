@@ -860,28 +860,60 @@ export default function PoolOrchestrator() {
             {managerActions.length === 0 ? (
               <p className="po-empty-actions">No pending action items identified at this time.</p>
             ) : (
-              <div className="po-actions-grid">
-                {managerActions.map((act) => (
-                  <article className={`po-action-card ${act.priority.toLowerCase()}`} key={act.id}>
-                    <div>
-                      <div className="po-action-header">
-                        <span className={`po-action-priority ${act.priority.toLowerCase()}`}>
-                          {act.priority} Priority
-                        </span>
-                        <span className="po-action-time">{act.timeframe}</span>
-                      </div>
-                      <h3 className="po-action-title">{act.title}</h3>
-                      <p className="po-action-desc">{act.description}</p>
-                    </div>
+              <div className={`po-actions-grid count-${managerActions.length}`}>
+                {managerActions.map((act) => {
+                  const cleanDesc = (act.description || '').replace(
+                    /(\d+)\s+minutes\s+ago/gi,
+                    (match, minsStr) => {
+                      const mins = parseInt(minsStr, 10);
+                      if (mins >= 1440) {
+                        const days = Math.round(mins / 1440);
+                        return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+                      }
+                      if (mins >= 60) {
+                        const hours = Math.round(mins / 60);
+                        return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+                      }
+                      return match;
+                    }
+                  );
 
-                    <div className="po-action-footer">
-                      <span>Source: {act.source}</span>
-                      <span className={`po-action-status-tag ${act.status === 'Action Required' ? 'urgent' : ''}`}>
-                        {act.status}
-                      </span>
-                    </div>
-                  </article>
-                ))}
+                  const cleanTimeframe = /^\d{1,2}:\d{2}\s*(?:AM|PM)$/i.test(act.timeframe || '')
+                    ? `Expected at ${act.timeframe}`
+                    : act.timeframe;
+
+                  const cleanSource = (act.source === 'public.sensor_readings' || act.source === 'Telemetry Ingestion')
+                    ? 'IoT Sensor Telemetry'
+                    : (act.source === 'ML Forecast Pipeline')
+                    ? 'Occupancy Forecast'
+                    : act.source;
+
+                  return (
+                    <article className={`po-action-card ${act.priority.toLowerCase()}`} key={act.id}>
+                      <div>
+                        <div className="po-action-header">
+                          <span className={`po-action-priority ${act.priority.toLowerCase()}`}>
+                            {act.priority} Priority
+                          </span>
+                          <span className="po-action-time">{cleanTimeframe}</span>
+                        </div>
+                        <h3 className="po-action-title">{act.title}</h3>
+                        <p className="po-action-desc">{cleanDesc}</p>
+                      </div>
+
+                      <div className="po-action-footer">
+                        <span>Source: {cleanSource}</span>
+                        <span className={`po-action-status-tag ${
+                          act.status === 'Action Required' ? 'urgent' :
+                          act.status === 'Recommended' ? 'recommended' :
+                          act.status === 'Due Soon' ? 'due-soon' : ''
+                        }`}>
+                          {act.status}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </section>

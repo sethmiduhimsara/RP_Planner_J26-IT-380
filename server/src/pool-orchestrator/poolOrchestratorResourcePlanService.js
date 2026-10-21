@@ -177,15 +177,24 @@ class PoolOrchestratorResourcePlanService {
     // 1. Stale sensor telemetry check
     if (latestReading && latestReading.recorded_at) {
       const readingAgeMinutes = Math.round((Date.now() - new Date(latestReading.recorded_at).getTime()) / 60000);
+      let formattedAge = `${readingAgeMinutes} minutes ago`;
+      if (readingAgeMinutes >= 1440) {
+        const days = Math.round(readingAgeMinutes / 1440);
+        formattedAge = `${days} ${days === 1 ? 'day' : 'days'} ago`;
+      } else if (readingAgeMinutes >= 60) {
+        const hours = Math.round(readingAgeMinutes / 60);
+        formattedAge = `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+      }
+
       if (readingAgeMinutes > 45) {
         actions.push({
           id: actionId++,
           title: 'Investigate Stale Sensor Telemetry',
-          description: `Last ESP32 sensor transmission was received ${readingAgeMinutes} minutes ago. Confirm gateway power and network connection.`,
+          description: `Last ESP32 sensor transmission was received ${formattedAge}. Confirm gateway power and network connection.`,
           priority: 'High',
           category: 'Hardware & Sensor',
           timeframe: 'Immediate',
-          source: 'public.sensor_readings',
+          source: 'IoT Sensor Telemetry',
           status: 'Action Required',
         });
       }
@@ -197,7 +206,7 @@ class PoolOrchestratorResourcePlanService {
         priority: 'High',
         category: 'Hardware & Sensor',
         timeframe: 'Setup Required',
-        source: 'Telemetry Ingestion',
+        source: 'IoT Sensor Telemetry',
         status: 'Action Required',
       });
     }
@@ -228,7 +237,7 @@ class PoolOrchestratorResourcePlanService {
         description: `Bather load triggers high-rate circulation recommendation (${highFiltrationSlot.expectedSwimmers} swimmers). Manager authorization required before relay activation.`,
         priority: 'Medium',
         category: 'Filtration Control',
-        timeframe: highFiltrationSlot.time12Hour,
+        timeframe: `Scheduled for ${highFiltrationSlot.time12Hour}`,
         source: 'Filtration Policy Rules',
         status: 'Awaiting Manager Approval',
       });
@@ -255,7 +264,7 @@ class PoolOrchestratorResourcePlanService {
         description: `Open-Meteo predicts rain (${rainySlot.weather}). Inspect outdoor drainage, ensure slip-resistant mats are deployed, and anticipate outdoor pool bather drop.`,
         priority: 'Low',
         category: 'Safety & Environment',
-        timeframe: rainySlot.time12Hour,
+        timeframe: `Expected at ${rainySlot.time12Hour}`,
         source: 'Open-Meteo API',
         status: 'Recommended',
       });
