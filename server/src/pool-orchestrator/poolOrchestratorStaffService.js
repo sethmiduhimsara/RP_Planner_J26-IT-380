@@ -156,6 +156,34 @@ class PoolOrchestratorStaffService {
   }
 
   /**
+   * Updates an existing staff member in the facility roster
+   */
+  async updateStaffMember(id, { name, role, phone, status = 'available' }) {
+    await this.ensureTables();
+    if (!name || !phone) {
+      throw new Error('Staff name and WhatsApp phone number are required.');
+    }
+
+    const cleanPhone = String(phone).trim();
+    const cleanName = String(name).trim();
+    const cleanRole = String(role || 'Lifeguard').trim();
+
+    const res = await db.query(
+      `UPDATE public.facility_staff
+       SET name = $1, role = $2, phone = $3, status = $4
+       WHERE id = $5
+       RETURNING *`,
+      [cleanName, cleanRole, cleanPhone, status, id]
+    );
+
+    if (res.rows.length === 0) {
+      throw new Error(`Staff member with ID ${id} not found.`);
+    }
+
+    return res.rows[0];
+  }
+
+  /**
    * Deletes a staff member from the facility roster
    */
   async deleteStaffMember(id) {

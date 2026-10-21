@@ -1144,6 +1144,7 @@ export default function PoolOrchestrator() {
                                   timeSlot: row.timeLabel,
                                   expectedSwimmers: row.expectedSwimmers,
                                   demandLevel: row.demandLevel,
+                                  existingAssignments: assignedTasksMap[row.timeLabel] || [],
                                 })
                                 setStaffModalOpen(true)
                               }}
@@ -1265,6 +1266,7 @@ export default function PoolOrchestrator() {
                                 timeSlot: cleanTimeframe,
                                 expectedSwimmers: peakSwimmers || 25,
                                 demandLevel: 'Moderate',
+                                existingAssignments: assignedTasksMap[act.title] || [],
                               })
                               setStaffModalOpen(true)
                             }}
