@@ -112,8 +112,22 @@ class PoolOrchestratorWhatsAppService {
       `[PoolOrchestratorWhatsApp] Received message from ${customerName} (${senderPhone}): "${messageText}"`
     );
 
-    // Generate context-aware suitable pool reply according to required selections format
-    const replyText = await this.generateSuitableReply(messageText, customerName);
+    // Check if this is a staff duty confirmation or decline response
+    let replyText = '';
+    try {
+      const { defaultStaffService } = require('./poolOrchestratorStaffService');
+      const staffReplyResult = await defaultStaffService.checkAndHandleStaffReply(senderPhone, messageText);
+      if (staffReplyResult && staffReplyResult.handled) {
+        replyText = staffReplyResult.replyText;
+      }
+    } catch (staffErr) {
+      console.warn('[PoolOrchestratorWhatsApp] Error checking staff reply:', staffErr.message);
+    }
+
+    // Fall back to context-aware suitable pool reply if not a staff duty response
+    if (!replyText) {
+      replyText = await this.generateSuitableReply(messageText, customerName);
+    }
 
     // Send the reply via WhatsApp Cloud API
     let sendResult = null;

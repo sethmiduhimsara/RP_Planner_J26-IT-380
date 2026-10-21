@@ -4,6 +4,8 @@ import {
   fetchForecast,
   fetchHealth,
   triggerForecastRefresh,
+  cancelStaffAssignment,
+  confirmStaffAssignment,
 } from './services/poolOrchestratorApi'
 import {
   format12HourTime,
@@ -13,6 +15,7 @@ import {
 } from './utils/poolOrchestratorTimeUtils'
 import PoolOrchestratorSettings from './PoolOrchestratorSettings'
 import PoolOrchestratorWhatsAppChat from './PoolOrchestratorWhatsAppChat'
+import PoolOrchestratorStaffModal from './PoolOrchestratorStaffModal'
 import './PoolOrchestrator.css'
 
 const POLLING_INTERVAL_MS = 20000 // 20-second automatic polling
@@ -139,6 +142,113 @@ function FiltrationModeIcon({ mode = 1, size = 16, className = '' }) {
   )
 }
 
+/**
+ * Renders duty assignment badges:
+ * - Confirmed staff: Green check badge with cancel button
+ * - Pending staff: Amber pulsing badge (awaiting WhatsApp confirmation) with confirm/cancel buttons
+ * - Declined staff: Red decline badge with decline reason
+ * - Add/Assign Staff button
+ */
+function StaffAssignmentBadges({
+  assignments = [],
+  onCancel,
+  onConfirm,
+  onAssignMore,
+  buttonLabel = '+ Assign Staff',
+}) {
+  const confirmed = assignments.filter((a) => a.status === 'confirmed')
+  const pending = assignments.filter((a) => a.status === 'pending_confirmation')
+  const rejected = assignments.filter((a) => a.status === 'rejected')
+
+  return (
+    <div className="po-staff-assignments-wrap">
+      {/* 1. Confirmed Staff (Accepted via WhatsApp) */}
+      {confirmed.map((a) => (
+        <span
+          key={a.id}
+          className="po-assigned-pill confirmed"
+          title={`Duty Confirmed: ${a.staff_name} (${a.staff_phone})`}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>✓ Assigned: {a.staff_name}</span>
+          <button
+            type="button"
+            className="po-mini-cancel-btn"
+            title="Cancel duty shift (dispatches WhatsApp cancellation notice)"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancel(a)
+            }}
+          >
+            ✕
+          </button>
+        </span>
+      ))}
+
+      {/* 2. Pending Staff (Awaiting WhatsApp reply) */}
+      {pending.map((a) => (
+        <span
+          key={a.id}
+          className="po-assigned-pill pending"
+          title={`Awaiting WhatsApp confirmation from ${a.staff_name} (${a.staff_phone})`}
+        >
+          <span className="po-mini-pulse" />
+          <span>⏳ Awaiting: {a.staff_name}</span>
+          <button
+            type="button"
+            className="po-mini-action-btn confirm"
+            title="Mark confirmed manually (if agreed verbally)"
+            onClick={(e) => {
+              e.stopPropagation()
+              onConfirm(a)
+            }}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            className="po-mini-cancel-btn"
+            title="Cancel shift invitation"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancel(a)
+            }}
+          >
+            ✕
+          </button>
+        </span>
+      ))}
+
+      {/* 3. Declined Staff */}
+      {rejected.map((a) => (
+        <span
+          key={a.id}
+          className="po-assigned-pill rejected"
+          title={`Declined by ${a.staff_name}: ${a.rejection_reason || 'Unavailable'}`}
+        >
+          <span>✕ Declined: {a.staff_name} {a.rejection_reason ? `(${a.rejection_reason})` : ''}</span>
+        </span>
+      ))}
+
+      {/* 4. Assign / Add Staff Button */}
+      <button
+        type="button"
+        className="po-btn-assign"
+        onClick={onAssignMore}
+        title="Assign staff to this slot/task"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>{assignments.length > 0 ? '+ Add Staff' : buttonLabel}</span>
+      </button>
+    </div>
+  )
+}
+
 export default function PoolOrchestrator() {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'settings'
   const [latestData, setLatestData] = useState(null)
@@ -150,6 +260,11 @@ export default function PoolOrchestrator() {
   const [actionNotice, setActionNotice] = useState(null)
   const [error, setError] = useState(null)
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null)
+
+  // Staff Assignment State
+  const [staffModalOpen, setStaffModalOpen] = useState(false)
+  const [activeTaskToAssign, setActiveTaskToAssign] = useState(null)
+  const [assignedTasksMap, setAssignedTasksMap] = useState({})
 
   // Update live clock every 30 seconds
   useEffect(() => {
@@ -176,6 +291,21 @@ export default function PoolOrchestrator() {
       setHealthData(healthRes)
       if (latestRes) {
         setLatestData(latestRes)
+        if (latestRes.staffAssignments && Array.isArray(latestRes.staffAssignments)) {
+          const map = {}
+          latestRes.staffAssignments.forEach((a) => {
+            if (a.status === 'cancelled') return
+            if (a.task_title) {
+              if (!map[a.task_title]) map[a.task_title] = []
+              map[a.task_title].push(a)
+            }
+            if (a.time_slot) {
+              if (!map[a.time_slot]) map[a.time_slot] = []
+              map[a.time_slot].push(a)
+            }
+          })
+          setAssignedTasksMap(map)
+        }
       }
       if (forecastRes) setForecastData(forecastRes)
 
@@ -222,6 +352,32 @@ export default function PoolOrchestrator() {
       setActionNotice(`Refresh notice: ${err.message}`)
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const handleCancelAssignment = async (assignment) => {
+    const reason = window.prompt(
+      `Cancel duty shift for ${assignment.staff_name} (${assignment.task_title || assignment.time_slot})?\n\nEnter reason for cancellation (dispatched to staff via WhatsApp):`,
+      'Operational schedule adjustment'
+    )
+    if (reason === null) return // user dismissed prompt
+
+    try {
+      await cancelStaffAssignment(assignment.id, reason || 'Operational schedule adjustment')
+      setActionNotice(`Shift assignment for ${assignment.staff_name} cancelled and WhatsApp notice dispatched.`)
+      await loadData()
+    } catch (err) {
+      setActionNotice(`Could not cancel assignment: ${err.message}`)
+    }
+  }
+
+  const handleConfirmAssignment = async (assignment) => {
+    try {
+      await confirmStaffAssignment(assignment.id)
+      setActionNotice(`Duty assignment confirmed for ${assignment.staff_name}.`)
+      await loadData()
+    } catch (err) {
+      setActionNotice(`Could not confirm assignment: ${err.message}`)
     }
   }
 
@@ -800,15 +956,34 @@ export default function PoolOrchestrator() {
                           </div>
                         </td>
                         <td>
-                          <span className="po-staff-pill">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                              <circle cx="9" cy="7" r="4" />
-                              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                            <span>{row.staffing.summary}</span>
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start' }}>
+                            <span className="po-staff-pill">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                              </svg>
+                              <span>{row.staffing.summary}</span>
+                            </span>
+
+                            <StaffAssignmentBadges
+                              assignments={assignedTasksMap[row.timeLabel] || []}
+                              onCancel={handleCancelAssignment}
+                              onConfirm={handleConfirmAssignment}
+                              onAssignMore={() => {
+                                setActiveTaskToAssign({
+                                  title: `Roster Duty: ${row.staffing.summary}`,
+                                  category: 'Lifeguard & Operations Duty',
+                                  timeSlot: row.timeLabel,
+                                  expectedSwimmers: row.expectedSwimmers,
+                                  demandLevel: row.demandLevel,
+                                })
+                                setStaffModalOpen(true)
+                              }}
+                              buttonLabel="+ Assign Staff"
+                            />
+                          </div>
                         </td>
                         <td>
                           <span className={`po-filtration-pill ${row.filtration.requiresApproval ? 'approval' : ''}`}>
@@ -903,13 +1078,32 @@ export default function PoolOrchestrator() {
 
                       <div className="po-action-footer">
                         <span>Source: {cleanSource}</span>
-                        <span className={`po-action-status-tag ${
-                          act.status === 'Action Required' ? 'urgent' :
-                          act.status === 'Recommended' ? 'recommended' :
-                          act.status === 'Due Soon' ? 'due-soon' : ''
-                        }`}>
-                          {act.status}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <StaffAssignmentBadges
+                            assignments={assignedTasksMap[act.title] || []}
+                            onCancel={handleCancelAssignment}
+                            onConfirm={handleConfirmAssignment}
+                            onAssignMore={() => {
+                              setActiveTaskToAssign({
+                                title: act.title,
+                                category: act.category || 'Duty Roster',
+                                timeSlot: cleanTimeframe,
+                                expectedSwimmers: peakSwimmers || 25,
+                                demandLevel: 'Moderate',
+                              })
+                              setStaffModalOpen(true)
+                            }}
+                            buttonLabel="Assign Staff"
+                          />
+
+                          <span className={`po-action-status-tag ${
+                            act.status === 'Action Required' ? 'urgent' :
+                            act.status === 'Recommended' ? 'recommended' :
+                            act.status === 'Due Soon' ? 'due-soon' : ''
+                          }`}>
+                            {act.status}
+                          </span>
+                        </div>
                       </div>
                     </article>
                   );
@@ -998,6 +1192,19 @@ export default function PoolOrchestrator() {
         </>
       )}
 
+
+      {/* Staff Duty Assignment & WhatsApp Dispatch Modal */}
+      <PoolOrchestratorStaffModal
+        isOpen={staffModalOpen}
+        onClose={() => setStaffModalOpen(false)}
+        taskDetails={activeTaskToAssign}
+        facilityName={facilityName}
+        onAssignmentSuccess={async (result) => {
+          await loadData()
+          const count = result?.count || result?.assignments?.length || 1
+          setActionNotice(`Duty invitations dispatched via WhatsApp to ${count} staff member(s). Assignments will show as 'Awaiting Response' until confirmed.`)
+        }}
+      />
 
       {/* Floating WhatsApp Customer Chat Manager Widget */}
       <PoolOrchestratorWhatsAppChat />

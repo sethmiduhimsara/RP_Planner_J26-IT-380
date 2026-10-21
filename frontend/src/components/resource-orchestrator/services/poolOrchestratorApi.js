@@ -257,3 +257,157 @@ export async function fetchWhatsAppConversationMessages(phone, signal) {
 
   return response.json();
 }
+
+/**
+ * Fetches registered facility staff members
+ */
+export async function fetchStaffMembers(signal) {
+  const response = await fetch(`${API_BASE}/staff`, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch staff members (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Adds a new staff member to the facility roster
+ */
+export async function addStaffMember(staffData) {
+  const response = await fetch(`${API_BASE}/staff`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(staffData),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to add staff member (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Deletes a staff member from the facility roster
+ */
+export async function deleteStaffMember(id) {
+  const response = await fetch(`${API_BASE}/staff/${id}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete staff member (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches duty assignment history
+ */
+export async function fetchStaffAssignments(signal) {
+  const response = await fetch(`${API_BASE}/staff/assignments`, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch assignments (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Assigns one or multiple staff members to an operational task/slot and triggers WhatsApp notifications
+ */
+export async function assignStaffTask(assignmentData) {
+  const response = await fetch(`${API_BASE}/staff/assign`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(assignmentData),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to assign staff task (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Cancels a staff duty assignment and triggers shift cancellation WhatsApp notification
+ */
+export async function cancelStaffAssignment(id, reason = 'Duty schedule adjustment') {
+  const response = await fetch(`${API_BASE}/staff/assignments/${id}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to cancel assignment (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Manually confirms a staff duty assignment
+ */
+export async function confirmStaffAssignment(id) {
+  const response = await fetch(`${API_BASE}/staff/assignments/${id}/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to confirm assignment (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Manually rejects a staff duty assignment
+ */
+export async function rejectStaffAssignment(id, reason = 'Declined by staff') {
+  const response = await fetch(`${API_BASE}/staff/assignments/${id}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to reject assignment (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+
