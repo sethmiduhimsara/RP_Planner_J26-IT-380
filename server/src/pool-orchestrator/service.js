@@ -157,6 +157,9 @@ async function getFiltrationStatus() {
       const row = result.rows[0];
       return {
         relayState: row.relay_state,
+        activeBulbs: row.active_bulbs,
+        stage: row.active_bulbs,
+        relays: row.relays,
         reason: row.reason,
         recordedAt: row.recorded_at,
         source: row.source,
