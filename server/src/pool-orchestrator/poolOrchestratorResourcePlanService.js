@@ -154,20 +154,27 @@ class PoolOrchestratorResourcePlanService {
   }
 
   _compileRationale(staffing, filtration, maintenance, swimmers, isRain) {
-    const parts = [];
-    if (staffing.isOpen) {
-      parts.push(`Staff: ${staffing.summary}.`);
-    } else {
-      parts.push('Facility closed for public swimming.');
+    if (!staffing.isOpen) {
+      return 'Facility closed for public swimming. Eco circulation active.';
     }
-
-    parts.push(`Filtration: ${filtration.recommendation}.`);
 
     if (isRain) {
-      parts.push('Precipitation forecast; monitor outdoor deck safety.');
+      return 'Precipitation forecast: inspect deck drainage and deploy slip-resistant mats.';
     }
 
-    return parts.join(' ');
+    if (swimmers > 40) {
+      return `Peak surge (~${swimmers} swimmers): intensified tower patrol and maximum turnover.`;
+    }
+
+    if (swimmers > 25) {
+      return `Elevated load (~${swimmers} swimmers): dual-zone patrol and high turnover recommended.`;
+    }
+
+    if (swimmers >= 15) {
+      return `Steady load (~${swimmers} swimmers): standard circulation maintains target turnover rate.`;
+    }
+
+    return `Off-peak load (~${swimmers} swimmers): eco-conscious filtration conserves electrical power.`;
   }
 
   _deriveManagerActions(planRows, latestReading, latestOccupancy, filtrationStatus) {

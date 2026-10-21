@@ -476,6 +476,18 @@ router.post('/staff', async (req, res, next) => {
 });
 
 /**
+ * Updates an existing staff member in the facility roster
+ */
+router.put('/staff/:id', async (req, res, next) => {
+  try {
+    const staff = await defaultStaffService.updateStaffMember(req.params.id, req.body);
+    res.json({ success: true, staff });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * Deletes a staff member from the facility roster
  */
 router.delete('/staff/:id', async (req, res, next) => {

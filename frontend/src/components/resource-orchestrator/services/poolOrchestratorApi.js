@@ -296,6 +296,27 @@ export async function addStaffMember(staffData) {
 }
 
 /**
+ * Updates an existing staff member in the facility roster
+ */
+export async function updateStaffMember(id, staffData) {
+  const response = await fetch(`${API_BASE}/staff/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(staffData),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Failed to update staff member (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
  * Deletes a staff member from the facility roster
  */
 export async function deleteStaffMember(id) {
