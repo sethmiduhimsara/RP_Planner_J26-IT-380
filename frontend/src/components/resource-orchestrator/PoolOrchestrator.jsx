@@ -195,7 +195,7 @@ function StaffAssignmentBadges({
   onConfirm,
   onAssignMore,
   buttonLabel = 'Assign Staff',
-  maxVisible = 2,
+  maxVisible = 1,
 }) {
   const [showPopover, setShowPopover] = useState(false)
   const popoverRef = useRef(null)
