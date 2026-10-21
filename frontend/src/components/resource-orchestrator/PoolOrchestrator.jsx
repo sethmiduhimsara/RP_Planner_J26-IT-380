@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   fetchLatest,
   fetchForecast,
@@ -183,7 +183,9 @@ function formatCompactName(fullName = '') {
  * Renders duty assignment badges in a compact horizontal flex layout:
  * - Deduplicates assignments per slot
  * - Formats names compactly ("Anura K.")
- * - Arranges chips horizontally so rows NEVER enlarge vertically
+ * - Caps visible items to maxVisible (default 2) with a "+N more" overflow pill
+ * - Floating popover shows all assignees with WhatsApp status and action buttons
+ * - Guarantees footer and table rows NEVER wrap or balloon vertically
  */
 function StaffAssignmentBadges({
   assignments = [],
@@ -191,23 +193,44 @@ function StaffAssignmentBadges({
   onConfirm,
   onAssignMore,
   buttonLabel = 'Assign Staff',
+  maxVisible = 2,
 }) {
-  const uniqueAssignments = getDeduplicatedAssignments(assignments)
-  const confirmed = uniqueAssignments.filter((a) => a.status === 'confirmed')
-  const pending = uniqueAssignments.filter((a) => a.status === 'pending_confirmation')
-  const rejected = uniqueAssignments.filter((a) => a.status === 'rejected')
+  const [showPopover, setShowPopover] = useState(false)
+  const popoverRef = useRef(null)
 
+  useEffect(() => {
+    if (!showPopover) return
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setShowPopover(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setShowPopover(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showPopover])
+
+  const uniqueAssignments = getDeduplicatedAssignments(assignments)
   const hasAnyStaff = uniqueAssignments.length > 0
   const cleanLabel = (hasAnyStaff ? 'Add' : buttonLabel).replace(/^\+\s*/, '')
 
-  return (
-    <div className="po-staff-roster-row">
-      {/* 1. Confirmed Staff (Single clean tick icon, compact chip) */}
-      {confirmed.map((a) => (
+  const visibleAssignments = uniqueAssignments.slice(0, maxVisible)
+  const overflowCount = uniqueAssignments.length - maxVisible
+  const hasOverflow = overflowCount > 0
+
+  const renderSinglePill = (a) => {
+    if (a.status === 'confirmed') {
+      return (
         <span
           key={a.id}
           className="po-assigned-pill confirmed"
-          title={`Duty Confirmed: ${a.staff_name} (${a.staff_phone})`}
+          title={`Duty Confirmed: ${a.staff_name} (${a.staff_phone || 'WhatsApp'})`}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
@@ -225,14 +248,14 @@ function StaffAssignmentBadges({
             ✕
           </button>
         </span>
-      ))}
-
-      {/* 2. Pending Staff (Compact chip with pulsing dot & action buttons) */}
-      {pending.map((a) => (
+      )
+    }
+    if (a.status === 'pending_confirmation') {
+      return (
         <span
           key={a.id}
           className="po-assigned-pill pending"
-          title={`Awaiting WhatsApp confirmation: ${a.staff_name} (${a.staff_phone})`}
+          title={`Awaiting WhatsApp confirmation: ${a.staff_name} (${a.staff_phone || ''})`}
         >
           <span className="po-mini-pulse" />
           <span className="po-staff-name-text">{formatCompactName(a.staff_name)}</span>
@@ -259,24 +282,123 @@ function StaffAssignmentBadges({
             ✕
           </button>
         </span>
-      ))}
+      )
+    }
+    return (
+      <span
+        key={a.id}
+        className="po-assigned-pill rejected"
+        title={`Declined by ${a.staff_name}: ${a.rejection_reason || 'Unavailable'}`}
+      >
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+        <span className="po-staff-name-text">Declined: {formatCompactName(a.staff_name)}</span>
+      </span>
+    )
+  }
 
-      {/* 3. Declined Staff (Compact chip) */}
-      {rejected.map((a) => (
-        <span
-          key={a.id}
-          className="po-assigned-pill rejected"
-          title={`Declined by ${a.staff_name}: ${a.rejection_reason || 'Unavailable'}`}
-        >
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-          <span className="po-staff-name-text">Declined: {formatCompactName(a.staff_name)}</span>
-        </span>
-      ))}
+  return (
+    <div className="po-staff-roster-row">
+      {/* 1. Visible Staff Pills (Up to maxVisible) */}
+      {visibleAssignments.map((a) => renderSinglePill(a))}
 
-      {/* 4. Compact Assign / Add Staff Button */}
+      {/* 2. Overflow Pill with floating Popover */}
+      {hasOverflow && (
+        <div className="po-popover-anchor" ref={popoverRef}>
+          <button
+            type="button"
+            className={`po-overflow-pill ${showPopover ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowPopover((prev) => !prev)
+            }}
+            title={`View all ${uniqueAssignments.length} assigned staff`}
+          >
+            <span>+{overflowCount} more</span>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {showPopover && (
+            <div className="po-roster-popover" role="dialog" aria-label="Assigned duty staff">
+              <div className="po-roster-popover-header">
+                <span className="po-roster-popover-title">
+                  Assigned Staff ({uniqueAssignments.length})
+                </span>
+                <button
+                  type="button"
+                  className="po-roster-popover-close"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowPopover(false)
+                  }}
+                  title="Close popup"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="po-roster-popover-list">
+                {uniqueAssignments.map((a) => {
+                  const isConfirmed = a.status === 'confirmed'
+                  const isPending = a.status === 'pending_confirmation'
+                  const isRejected = a.status === 'rejected'
+
+                  return (
+                    <div key={a.id} className={`po-roster-popover-item ${a.status}`}>
+                      <div className="po-popover-item-info">
+                        <div className="po-popover-item-name-row">
+                          <span className={`po-status-dot-sm ${isConfirmed ? 'online' : isPending ? 'pending' : 'offline'}`} />
+                          <span className="po-popover-item-name">{a.staff_name}</span>
+                          <span className={`po-popover-item-badge ${a.status}`}>
+                            {isConfirmed ? 'Confirmed' : isPending ? 'Pending' : 'Declined'}
+                          </span>
+                        </div>
+                        <div className="po-popover-item-phone">
+                          {a.staff_phone || 'No phone recorded'}
+                          {a.rejection_reason && ` · Reason: ${a.rejection_reason}`}
+                        </div>
+                      </div>
+                      <div className="po-popover-item-actions">
+                        {isPending && (
+                          <button
+                            type="button"
+                            className="po-popover-action-btn confirm"
+                            title="Confirm shift"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onConfirm(a)
+                            }}
+                          >
+                            ✓ Confirm
+                          </button>
+                        )}
+                        {!isRejected && (
+                          <button
+                            type="button"
+                            className="po-popover-action-btn cancel"
+                            title="Cancel shift"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onCancel(a)
+                            }}
+                          >
+                            ✕ Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Compact Assign / Add Staff Button */}
       <button
         type="button"
         className={`po-btn-assign ${hasAnyStaff ? 'compact' : ''}`}
@@ -1114,15 +1236,24 @@ export default function PoolOrchestrator() {
                           <span className={`po-action-priority ${act.priority.toLowerCase()}`}>
                             {act.priority} Priority
                           </span>
-                          <span className="po-action-time">{cleanTimeframe}</span>
+                          <div className="po-action-header-right">
+                            <span className={`po-action-status-tag ${
+                              act.status === 'Action Required' ? 'urgent' :
+                              act.status === 'Recommended' ? 'recommended' :
+                              act.status === 'Due Soon' ? 'due-soon' : ''
+                            }`}>
+                              {act.status}
+                            </span>
+                            <span className="po-action-time">{cleanTimeframe}</span>
+                          </div>
                         </div>
                         <h3 className="po-action-title">{act.title}</h3>
                         <p className="po-action-desc">{cleanDesc}</p>
                       </div>
 
                       <div className="po-action-footer">
-                        <span>Source: {cleanSource}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span className="po-action-source">Source: {cleanSource}</span>
+                        <div className="po-action-footer-roster">
                           <StaffAssignmentBadges
                             assignments={assignedTasksMap[act.title] || []}
                             onCancel={handleCancelAssignment}
@@ -1139,14 +1270,6 @@ export default function PoolOrchestrator() {
                             }}
                             buttonLabel="Assign Staff"
                           />
-
-                          <span className={`po-action-status-tag ${
-                            act.status === 'Action Required' ? 'urgent' :
-                            act.status === 'Recommended' ? 'recommended' :
-                            act.status === 'Due Soon' ? 'due-soon' : ''
-                          }`}>
-                            {act.status}
-                          </span>
                         </div>
                       </div>
                     </article>
