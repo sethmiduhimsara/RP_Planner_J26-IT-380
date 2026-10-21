@@ -131,6 +131,8 @@ router.get('/forecast', async (req, res, next) => {
       count: predictions.length,
       predictions,
       forecastStatus,
+      filtration,
+      filtrationMode: defaultMqttService.getFiltrationMode(),
       weatherConfigured: defaultWeatherService.isConfigured(),
       resourcePlan,
       settings,

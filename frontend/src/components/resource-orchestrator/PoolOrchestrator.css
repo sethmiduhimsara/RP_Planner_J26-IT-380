@@ -1950,6 +1950,63 @@
   background: #ffffff;
 }
 
+/* Navigation Tabs for WhatsApp Inbox Channels */
+.po-wa-nav-tabs {
+  display: flex;
+  background: #f0f2f5;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  gap: 6px;
+}
+
+.po-wa-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.po-wa-nav-tab:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.po-wa-nav-tab.active {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #075e54;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.po-wa-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.po-wa-nav-tab.active .po-wa-tab-count {
+  background: #00a884;
+  color: #ffffff;
+}
+
 .po-wa-search-box {
   padding: 10px 12px;
   background: #f0f2f5;
@@ -2002,6 +2059,45 @@
   font-weight: 700;
   font-size: 16px;
   flex-shrink: 0;
+}
+
+.po-wa-item-avatar.staff {
+  background: #059669;
+}
+
+.po-wa-item-avatar.customer {
+  background: #0284c7;
+}
+
+.po-wa-avatar.staff {
+  background: #059669;
+}
+
+.po-wa-avatar.customer {
+  background: #0284c7;
+}
+
+.po-wa-item-role-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #d1fae5;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.po-wa-header-role-badge {
+  font-size: 10px;
+  font-weight: 650;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #dcf8c6;
+  color: #075e54;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 .po-wa-item-content {
@@ -3363,5 +3459,455 @@
   text-align: left;
   margin-top: 8px;
 }
+
+/* ==========================================================================
+   Filtration Cycle Manual Override & Modal Styles
+   ========================================================================== */
+
+/* Metric Card Header Right Alignment */
+.po-metric-header-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.po-filtration-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.po-filtration-change-btn:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+  color: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.12);
+}
+
+.po-filtration-change-btn svg {
+  flex-shrink: 0;
+}
+
+/* Metric Main row for filtration card */
+.po-metric-filtration-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.po-manual-override-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.po-auto-regulated-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+/* Filtration Modal Customizations */
+.po-modal-container.po-modal-container-lg {
+  max-width: 740px;
+  width: 95%;
+}
+
+.po-modal-icon-badge.filtration {
+  background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
+  color: #ffffff;
+}
+
+/* Live Telemetry Banner inside Modal */
+.po-filt-telemetry-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.po-filt-telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.po-filt-telemetry-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.po-filt-telemetry-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.po-filt-telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.po-filt-telemetry-badge.auto {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.po-filt-telemetry-badge.manual {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* Relay Status Chips */
+.po-relay-chips-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.po-relay-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.po-relay-chip.active {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.25);
+}
+
+.po-relay-chip.inactive {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+
+/* Modal Form Section Headers */
+.po-filt-mode-selector-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+/* Auto Regulated Card */
+.po-filt-auto-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 12px;
+}
+
+.po-filt-auto-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.po-filt-auto-card.selected {
+  border-color: #10b981;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 1px #10b981, 0 2px 8px rgba(16, 185, 129, 0.1);
+}
+
+.po-filt-auto-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #d1fae5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.po-filt-auto-card.selected .po-filt-auto-icon {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.po-filt-auto-desc h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+
+.po-filt-auto-desc p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Divider */
+.po-filt-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 14px 0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.po-filt-divider::before,
+.po-filt-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.po-filt-divider span {
+  padding: 0 10px;
+}
+
+/* 4-Grid Filtration Preset Cards */
+.po-filt-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.po-filt-mode-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.po-filt-mode-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.po-filt-mode-card.selected {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.po-filt-mode-card.theme-blue.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 1px #0284c7, 0 2px 8px rgba(2, 132, 199, 0.12);
+}
+
+.po-filt-mode-card.theme-teal.selected {
+  border-color: #0d9488;
+  background: #f0fdfa;
+  box-shadow: 0 0 0 1px #0d9488, 0 2px 8px rgba(13, 148, 136, 0.12);
+}
+
+.po-filt-mode-card.theme-amber.selected {
+  border-color: #d97706;
+  background: #fffbeb;
+  box-shadow: 0 0 0 1px #d97706, 0 2px 8px rgba(217, 119, 6, 0.12);
+}
+
+.po-filt-mode-card.theme-red.selected {
+  border-color: #dc2626;
+  background: #fef2f2;
+  box-shadow: 0 0 0 1px #dc2626, 0 2px 8px rgba(220, 38, 38, 0.12);
+}
+
+.po-filt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.po-filt-stage-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.po-filt-mode-card.theme-blue .po-filt-stage-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.po-filt-mode-card.theme-teal .po-filt-stage-badge {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.po-filt-mode-card.theme-amber .po-filt-stage-badge {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.po-filt-mode-card.theme-red .po-filt-stage-badge {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.po-filt-relays-pill {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.po-filt-card-main h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.po-filt-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.po-filt-card-main p {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.po-active-pill {
+  margin-top: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 4px;
+  padding: 3px 8px;
+  text-align: center;
+}
+
+/* Quick Reason Chips */
+.po-filt-quick-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.po-reason-chip {
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.po-reason-chip:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.po-reason-chip.active {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-color: #7dd3fc;
+  font-weight: 600;
+}
+
+.po-filt-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 12.5px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.po-filt-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
 
 

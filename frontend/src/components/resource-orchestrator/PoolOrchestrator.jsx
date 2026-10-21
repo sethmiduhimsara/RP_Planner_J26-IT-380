@@ -6,6 +6,7 @@ import {
   triggerForecastRefresh,
   cancelStaffAssignment,
   confirmStaffAssignment,
+  sendFiltrationCommand,
 } from './services/poolOrchestratorApi'
 import {
   format12HourTime,
@@ -16,6 +17,7 @@ import {
 import PoolOrchestratorSettings from './PoolOrchestratorSettings'
 import PoolOrchestratorWhatsAppChat from './PoolOrchestratorWhatsAppChat'
 import PoolOrchestratorStaffModal from './PoolOrchestratorStaffModal'
+import PoolOrchestratorFiltrationModal from './PoolOrchestratorFiltrationModal'
 import './PoolOrchestrator.css'
 
 const POLLING_INTERVAL_MS = 20000 // 20-second automatic polling
@@ -432,6 +434,12 @@ export default function PoolOrchestrator() {
   const [activeTaskToAssign, setActiveTaskToAssign] = useState(null)
   const [assignedTasksMap, setAssignedTasksMap] = useState({})
 
+  // Filtration Cycle Override State
+  const [filtrationModalOpen, setFiltrationModalOpen] = useState(false)
+  const [controllingFiltration, setControllingFiltration] = useState(false)
+  const [modalInitialStage, setModalInitialStage] = useState(null)
+  const [modalInitialReason, setModalInitialReason] = useState(null)
+
   // Update live clock every 30 seconds
   useEffect(() => {
     const clockTimer = setInterval(() => {
@@ -547,6 +555,41 @@ export default function PoolOrchestrator() {
     }
   }
 
+  // Filtration Cycle manual regulation handlers
+  const handleOpenFiltrationModal = (stage = null, reason = null) => {
+    setModalInitialStage(stage)
+    setModalInitialReason(reason)
+    setFiltrationModalOpen(true)
+  }
+
+  const handleEngageFiltration = async (stageOrOptions, reason) => {
+    try {
+      setControllingFiltration(true)
+      let payload = {}
+      if (stageOrOptions === 'auto') {
+        payload = { mode: 'auto', reason }
+      } else if (typeof stageOrOptions === 'number' || !isNaN(Number(stageOrOptions))) {
+        payload = { stage: Number(stageOrOptions), reason }
+      } else if (typeof stageOrOptions === 'object') {
+        payload = stageOrOptions
+      }
+
+      const res = await sendFiltrationCommand(payload)
+      if (res?.filtrationMode === 'auto') {
+        setActionNotice('Filtration resumed to Auto-Regulated ML mode based on bather occupancy.')
+      } else {
+        const bulbs = res?.activeBulbs || stageOrOptions
+        setActionNotice(`Manual filtration override active: Mode ${bulbs} engaged (${bulbs} relay${bulbs > 1 ? 's' : ''} active via MQTT).`)
+      }
+      setFiltrationModalOpen(false)
+      await loadData()
+    } catch (err) {
+      setActionNotice(`Could not actuate filtration relays: ${err.message}`)
+    } finally {
+      setControllingFiltration(false)
+    }
+  }
+
   // Derived state & operational metrics
   const settings = latestData?.settings || forecastData?.settings || null
   const facilityName = settings?.pool_name || latestData?.facilityName || healthData?.facilityName || 'Aquatic Centre Main Pool'
@@ -619,37 +662,55 @@ export default function PoolOrchestrator() {
 
   // Dynamic filtration mode, cycle name, and operational detail
   const currentFiltrationMode = useMemo(() => {
+    const filtrationData = latestData?.filtration || forecastData?.filtration || null
+    const isManual = latestData?.filtrationMode === 'manual' || filtrationData?.source === 'manager_manual'
     const occ = currentOccupancy ?? 0
-    let modeKey = 1
+
+    let autoModeKey = 1
     let tierRange = `< ${lowDemandMax} swimmers`
 
     if (occ > highDemandMax) {
-      modeKey = 4
+      autoModeKey = 4
       tierRange = `> ${highDemandMax} swimmers`
     } else if (occ > modDemandMax) {
-      modeKey = 3
+      autoModeKey = 3
       tierRange = `${modDemandMax + 1}–${highDemandMax} swimmers`
     } else if (occ >= lowDemandMax) {
-      modeKey = 2
+      autoModeKey = 2
       tierRange = `${lowDemandMax}–${modDemandMax} swimmers`
     }
 
-    const mode = FILTRATION_MODES[modeKey]
-    const detail = currentOccupancy !== null
-      ? `Mode ${mode.modeNumber} · ${mode.speed} (${tierRange})`
-      : `Mode ${mode.modeNumber} · ${mode.speed} (Baseline circulation)`
+    let modeKey = autoModeKey
+    if (isManual && filtrationData?.activeBulbs !== undefined && filtrationData.activeBulbs > 0) {
+      modeKey = Math.min(4, Math.max(1, filtrationData.activeBulbs))
+    }
 
-    const tooltip = currentOccupancy !== null
-      ? `${mode.fullName}: ${mode.speed} · ${mode.operation} (Auto-regulated for ${occ} swimmers: ${tierRange})`
-      : `${mode.fullName}: ${mode.speed} · ${mode.operation} (Baseline circulation)`
+    const mode = FILTRATION_MODES[modeKey] || FILTRATION_MODES[1]
+
+    let detail = ''
+    let tooltip = ''
+    if (isManual) {
+      const activeCount = filtrationData?.activeBulbs || modeKey
+      detail = `Mode ${mode.modeNumber} · ${activeCount} relay${activeCount > 1 ? 's' : ''} active (${mode.speed})`
+      tooltip = `Manual Override: ${filtrationData?.reason || mode.fullName}. Auto load regulation paused.`
+    } else {
+      detail = currentOccupancy !== null
+        ? `Mode ${mode.modeNumber} · ${mode.speed} (${tierRange})`
+        : `Mode ${mode.modeNumber} · ${mode.speed} (Baseline circulation)`
+      tooltip = currentOccupancy !== null
+        ? `${mode.fullName}: ${mode.speed} · ${mode.operation} (Auto-regulated for ${occ} swimmers: ${tierRange})`
+        : `${mode.fullName}: ${mode.speed} · ${mode.operation} (Baseline circulation)`
+    }
 
     return {
       ...mode,
+      isManual,
       occupancyTierRange: tierRange,
       detailText: detail,
       tooltipText: tooltip,
+      filtrationData,
     }
-  }, [currentOccupancy, lowDemandMax, modDemandMax, highDemandMax])
+  }, [currentOccupancy, latestData, forecastData, lowDemandMax, modDemandMax, highDemandMax])
 
   // Chart data normalization
   const chartData = useMemo(() => {
@@ -912,21 +973,43 @@ export default function PoolOrchestrator() {
               </article>
 
               {/* 4. Filtration Mode & Cycle */}
-              <article className="po-metric-card">
+              <article className="po-metric-card po-metric-filtration-card">
                 <div className="po-metric-header">
                   <span className="po-metric-title">Filtration Cycle</span>
-                  <div
-                    className={`po-metric-icon ${currentFiltrationMode.theme}`}
-                    title={currentFiltrationMode.tooltipText}
-                  >
-                    <FiltrationModeIcon mode={currentFiltrationMode.modeNumber} size={16} />
+                  <div className="po-metric-header-right">
+                    <button
+                      type="button"
+                      className="po-filtration-change-btn"
+                      onClick={() => handleOpenFiltrationModal()}
+                      title="Change filtration cycle manually or resume auto mode"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
+                      <span>Change</span>
+                    </button>
+                    <div
+                      className={`po-metric-icon ${currentFiltrationMode.theme}`}
+                      title={currentFiltrationMode.tooltipText}
+                    >
+                      <FiltrationModeIcon mode={currentFiltrationMode.modeNumber} size={16} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="po-metric-main">
+                <div className="po-metric-main po-metric-filtration-main">
                   <span className="po-metric-value po-metric-filtration-name">
                     {currentFiltrationMode.name}
                   </span>
+                  {currentFiltrationMode.isManual ? (
+                    <span className="po-manual-override-tag" title="Filtration is in manual override mode">
+                      Manual Override
+                    </span>
+                  ) : (
+                    <span className="po-auto-regulated-tag" title="Auto load-based regulation via ML & occupancy thresholds">
+                      Auto (ML)
+                    </span>
+                  )}
                 </div>
 
                 <p className="po-metric-detail" title={currentFiltrationMode.tooltipText}>
@@ -1153,7 +1236,10 @@ export default function PoolOrchestrator() {
                           </div>
                         </td>
                         <td>
-                          <span className={`po-filtration-pill ${row.filtration.requiresApproval ? 'approval' : ''}`}>
+                          <span
+                            className={`po-filtration-pill ${row.filtration.requiresApproval ? 'approval' : ''}`}
+                            title={row.filtration.executionStatus || undefined}
+                          >
                             <span className="po-relay-stage-indicator">
                               {row.filtration.stage ? `Mode ${row.filtration.stage}` : (
                                 row.demandLevel === 'Very High' ? 'Mode 4' :
@@ -1164,9 +1250,6 @@ export default function PoolOrchestrator() {
                             <span>{row.filtration.recommendation || row.filtration.mode}</span>
                             {row.filtration.requiresApproval && <span className="po-req-tag">Approval Req</span>}
                           </span>
-                          <div className="po-slot-subtext" style={{ marginTop: '3px' }}>
-                            {row.filtration.executionStatus}
-                          </div>
                         </td>
                         <td>
                           <span className="po-maintenance-pill">
@@ -1373,6 +1456,18 @@ export default function PoolOrchestrator() {
           const count = result?.count || result?.assignments?.length || 1
           setActionNotice(`Duty invitations dispatched via WhatsApp to ${count} staff member(s). Assignments will show as 'Awaiting Response' until confirmed.`)
         }}
+      />
+
+      {/* Manual Filtration Cycle Regulation Modal */}
+      <PoolOrchestratorFiltrationModal
+        isOpen={filtrationModalOpen}
+        onClose={() => setFiltrationModalOpen(false)}
+        currentMode={currentFiltrationMode}
+        currentFiltrationData={currentFiltrationMode?.filtrationData}
+        initialStage={modalInitialStage}
+        initialReason={modalInitialReason}
+        onEngageMode={handleEngageFiltration}
+        loading={controllingFiltration}
       />
 
       {/* Floating WhatsApp Customer Chat Manager Widget */}

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   fetchWhatsAppConversations,
   fetchWhatsAppConversationMessages,
+  fetchStaffMembers,
   sendWhatsAppMessage,
 } from './services/poolOrchestratorApi'
 
@@ -14,8 +15,10 @@ function formatWhatsAppText(text) {
 
 export default function PoolOrchestratorWhatsAppChat() {
   const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('customers') // 'customers' | 'staff'
   const [conversations, setConversations] = useState([])
-  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [staffList, setStaffList] = useState([])
+  const [selectedContact, setSelectedContact] = useState(null)
   const [messages, setMessages] = useState([])
   const [loadingConversations, setLoadingConversations] = useState(false)
   const [loadingMessages, setLoadingMessages] = useState(false)
@@ -31,22 +34,28 @@ export default function PoolOrchestratorWhatsAppChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Load conversation threads
+  // Load conversation threads & registered facility staff
   const loadConversations = useCallback(async (quiet = false) => {
     if (!quiet) setLoadingConversations(true)
     try {
-      const data = await fetchWhatsAppConversations()
-      if (data && data.conversations) {
-        setConversations(data.conversations)
+      const [convRes, staffRes] = await Promise.all([
+        fetchWhatsAppConversations().catch(() => ({ conversations: [] })),
+        fetchStaffMembers().catch(() => ({ staff: [] })),
+      ])
+      if (convRes && convRes.conversations) {
+        setConversations(convRes.conversations)
+      }
+      if (staffRes && staffRes.staff) {
+        setStaffList(staffRes.staff)
       }
     } catch (err) {
-      console.warn('Could not load WhatsApp conversations:', err.message)
+      console.warn('Could not load WhatsApp conversations or staff:', err.message)
     } finally {
       if (!quiet) setLoadingConversations(false)
     }
   }, [])
 
-  // Load message thread for the selected customer
+  // Load message thread for the selected contact
   const loadMessages = useCallback(async (phone, quiet = false) => {
     if (!phone) return
     if (!quiet) setLoadingMessages(true)
@@ -70,13 +79,13 @@ export default function PoolOrchestratorWhatsAppChat() {
     loadConversations(false)
     const interval = setInterval(() => {
       loadConversations(true)
-      if (selectedCustomer?.sender_phone) {
-        loadMessages(selectedCustomer.sender_phone, true)
+      if (selectedContact?.sender_phone) {
+        loadMessages(selectedContact.sender_phone, true)
       }
     }, 6000)
 
     return () => clearInterval(interval)
-  }, [isOpen, selectedCustomer, loadConversations, loadMessages])
+  }, [isOpen, selectedContact, loadConversations, loadMessages])
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -85,25 +94,111 @@ export default function PoolOrchestratorWhatsAppChat() {
     }
   }, [messages])
 
-  // Handle customer selection
-  const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer)
+  // Partition conversations into Customer Chats and Staff Member Chats
+  const { customerConversations, staffConversations } = useMemo(() => {
+    const staffPhoneMap = new Map()
+    staffList.forEach((s) => {
+      const clean = String(s.phone || '').replace(/[^0-9]/g, '')
+      if (clean) staffPhoneMap.set(clean, s)
+    })
+
+    const customers = []
+    const staffMap = new Map()
+
+    // 1. Process active conversations from database
+    conversations.forEach((c) => {
+      const cleanPhone = String(c.sender_phone || '').replace(/[^0-9]/g, '')
+      const matchedStaff = staffPhoneMap.get(cleanPhone)
+
+      if (c.is_staff || matchedStaff) {
+        const staffObj = matchedStaff || {}
+        staffMap.set(cleanPhone, {
+          ...c,
+          is_staff: true,
+          customer_name: staffObj.name || c.contact_name || c.customer_name || 'Staff Member',
+          staff_role: staffObj.role || c.staff_role || 'Operations Staff',
+          staff_id: staffObj.id || c.staff_id,
+          phone_display: staffObj.phone || `+${c.sender_phone}`,
+        })
+      } else {
+        customers.push({
+          ...c,
+          is_staff: false,
+          customer_name: c.contact_name || c.customer_name || 'Customer',
+          phone_display: `+${c.sender_phone}`,
+        })
+      }
+    })
+
+    // 2. Ensure all registered staff members are listed under Staff Operations
+    staffList.forEach((s) => {
+      const cleanPhone = String(s.phone || '').replace(/[^0-9]/g, '')
+      if (cleanPhone && !staffMap.has(cleanPhone)) {
+        staffMap.set(cleanPhone, {
+          sender_phone: cleanPhone,
+          customer_name: s.name,
+          contact_name: s.name,
+          staff_role: s.role || 'Staff Member',
+          staff_id: s.id,
+          phone_display: s.phone,
+          is_staff: true,
+          total_messages: 0,
+          last_activity: null,
+          last_message: 'Registered staff member · Ready for direct messaging',
+          last_status: 'available',
+        })
+      }
+    })
+
+    const staffListArray = Array.from(staffMap.values()).sort((a, b) => {
+      if (a.last_activity && b.last_activity) {
+        return new Date(b.last_activity) - new Date(a.last_activity)
+      }
+      if (a.last_activity) return -1
+      if (b.last_activity) return 1
+      return (a.customer_name || '').localeCompare(b.customer_name || '')
+    })
+
+    return {
+      customerConversations: customers,
+      staffConversations: staffListArray,
+    }
+  }, [conversations, staffList])
+
+  // Filter list based on active tab and search query
+  const filteredList = useMemo(() => {
+    const list = activeTab === 'customers' ? customerConversations : staffConversations
+    if (!searchQuery.trim()) return list
+    const q = searchQuery.toLowerCase()
+    return list.filter((c) => {
+      return (
+        (c.customer_name && c.customer_name.toLowerCase().includes(q)) ||
+        (c.sender_phone && c.sender_phone.includes(q)) ||
+        (c.staff_role && c.staff_role.toLowerCase().includes(q)) ||
+        (c.last_message && c.last_message.toLowerCase().includes(q))
+      )
+    })
+  }, [activeTab, customerConversations, staffConversations, searchQuery])
+
+  // Handle contact selection
+  const handleSelectContact = (contact) => {
+    setSelectedContact(contact)
     setSendError(null)
-    loadMessages(customer.sender_phone, false)
+    loadMessages(contact.sender_phone, false)
   }
 
   // Handle sending a message as manager
   const handleSendMessage = async (textToSend) => {
     const text = (textToSend || composerText).trim()
-    if (!text || !selectedCustomer?.sender_phone) return
+    if (!text || !selectedContact?.sender_phone) return
 
     setSending(true)
     setSendError(null)
     try {
-      await sendWhatsAppMessage(selectedCustomer.sender_phone, text, 'manager')
+      await sendWhatsAppMessage(selectedContact.sender_phone, text, 'manager')
       setComposerText('')
       // Refresh messages
-      await loadMessages(selectedCustomer.sender_phone, true)
+      await loadMessages(selectedContact.sender_phone, true)
       await loadConversations(true)
     } catch (err) {
       setSendError(err.message || 'Failed to dispatch message via Meta Cloud API')
@@ -112,22 +207,14 @@ export default function PoolOrchestratorWhatsAppChat() {
     }
   }
 
-  // Filter conversations
-  const filteredConversations = conversations.filter((c) => {
-    const q = searchQuery.toLowerCase()
-    return (
-      (c.customer_name && c.customer_name.toLowerCase().includes(q)) ||
-      (c.sender_phone && c.sender_phone.includes(q)) ||
-      (c.last_message && c.last_message.toLowerCase().includes(q))
-    )
-  })
-
   // Format timestamp helper
   const formatTime = (ts) => {
     if (!ts) return ''
     const d = new Date(ts)
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
+
+  const totalUnreadCount = conversations.length
 
   return (
     <>
@@ -138,8 +225,8 @@ export default function PoolOrchestratorWhatsAppChat() {
         type="button"
         className="po-wa-fab"
         onClick={() => setIsOpen((prev) => !prev)}
-        aria-label="WhatsApp Customer Chats"
-        title="WhatsApp Customer Chats (Live Telemetry)"
+        aria-label="WhatsApp Operations Hub"
+        title="WhatsApp Operations Hub (Customer Inquiries & Staff Chats)"
       >
         <svg
           viewBox="0 0 32 32"
@@ -152,8 +239,8 @@ export default function PoolOrchestratorWhatsAppChat() {
           <path d="M16 2a13.9 13.9 0 0 0-12 21L2 30l7.2-1.9A14 14 0 1 0 16 2zm0 25.5a11.5 11.5 0 0 1-5.9-1.6l-.4-.3-4.3 1.1 1.2-4.2-.3-.4A11.5 11.5 0 1 1 16 27.5zm6.3-8.6c-.3-.2-2-.9-2.3-1s-.5-.2-.7.2-.8 1-1 1.2-.4.3-.7.1a8.8 8.8 0 0 1-2.6-1.6 9.7 9.7 0 0 1-1.8-2.3c-.2-.3 0-.5.2-.7s.3-.4.5-.6l.3-.5c.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.3 1.4 3.5 2.4 3.7 5.8 5.1c.8.4 1.4.6 1.9.7.8.3 1.6.2 2.2.1.7-.1 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6s-.3-.2-.6-.4z" />
         </svg>
 
-        {conversations.length > 0 && (
-          <span className="po-wa-badge">{conversations.length}</span>
+        {totalUnreadCount > 0 && (
+          <span className="po-wa-badge">{totalUnreadCount}</span>
         )}
       </button>
 
@@ -165,28 +252,36 @@ export default function PoolOrchestratorWhatsAppChat() {
           {/* Top Bar Header */}
           <div className="po-wa-header">
             <div className="po-wa-header-left">
-              {selectedCustomer ? (
+              {selectedContact ? (
                 <>
                   <button
                     type="button"
                     className="po-wa-back-btn"
                     onClick={() => {
-                      setSelectedCustomer(null)
+                      setSelectedContact(null)
                       loadConversations(true)
                     }}
-                    title="Back to all customer chats"
+                    title="Back to conversations list"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <line x1="19" y1="12" x2="5" y2="12" />
                       <polyline points="12 19 5 12 12 5" />
                     </svg>
                   </button>
-                  <div className="po-wa-avatar">
-                    {(selectedCustomer.customer_name || 'C').charAt(0).toUpperCase()}
+                  <div className={`po-wa-avatar ${selectedContact.is_staff ? 'staff' : 'customer'}`}>
+                    {(selectedContact.customer_name || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div className="po-wa-header-info">
-                    <h4>{selectedCustomer.customer_name || 'Customer'}</h4>
-                    <span>+{selectedCustomer.sender_phone} · Online</span>
+                    <h4>
+                      {selectedContact.customer_name || 'Contact'}
+                      {selectedContact.is_staff && (
+                        <span className="po-wa-header-role-badge">{selectedContact.staff_role}</span>
+                      )}
+                    </h4>
+                    <span>
+                      {selectedContact.is_staff ? 'Staff Member · ' : 'Customer Inquiry · '}
+                      {selectedContact.phone_display || `+${selectedContact.sender_phone}`}
+                    </span>
                   </div>
                 </>
               ) : (
@@ -197,8 +292,8 @@ export default function PoolOrchestratorWhatsAppChat() {
                     </svg>
                   </div>
                   <div className="po-wa-header-info">
-                    <h4>WhatsApp Customer Inquiries</h4>
-                    <span>Meta Cloud API · +94 76 579 0015</span>
+                    <h4>WhatsApp Communications Hub</h4>
+                    <span>Meta Cloud API · Multi-Channel Dispatch</span>
                   </div>
                 </>
               )}
@@ -209,13 +304,13 @@ export default function PoolOrchestratorWhatsAppChat() {
                 type="button"
                 className="po-wa-icon-btn"
                 onClick={() => {
-                  if (selectedCustomer) {
-                    loadMessages(selectedCustomer.sender_phone, false)
+                  if (selectedContact) {
+                    loadMessages(selectedContact.sender_phone, false)
                   } else {
                     loadConversations(false)
                   }
                 }}
-                title="Refresh messages"
+                title="Refresh conversations"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="23 4 23 10 17 10" />
@@ -223,9 +318,9 @@ export default function PoolOrchestratorWhatsAppChat() {
                 </svg>
               </button>
 
-              {selectedCustomer && (
+              {selectedContact && (
                 <a
-                  href={`https://wa.me/${selectedCustomer.sender_phone}`}
+                  href={`https://wa.me/${selectedContact.sender_phone}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="po-wa-icon-btn"
@@ -255,16 +350,54 @@ export default function PoolOrchestratorWhatsAppChat() {
 
           {/* Body Content */}
           <div className="po-wa-body">
-            {!selectedCustomer ? (
+            {!selectedContact ? (
               /* =================================================================
-                 VIEW A: CUSTOMER CONVERSATION LIST
+                 VIEW A: DUAL-TAB CONVERSATION DIRECTORY
                  ================================================================= */
               <div className="po-wa-list-container">
+                {/* 2 Navigation Tabs: Customer Chats & Staff Members Chats */}
+                <div className="po-wa-nav-tabs" role="tablist" aria-label="WhatsApp Inbox Channels">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'customers'}
+                    className={`po-wa-nav-tab ${activeTab === 'customers' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('customers')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>Customer Chats</span>
+                    <span className="po-wa-tab-count">{customerConversations.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'staff'}
+                    className={`po-wa-nav-tab ${activeTab === 'staff' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('staff')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    <span>Staff Members</span>
+                    <span className="po-wa-tab-count">{staffConversations.length}</span>
+                  </button>
+                </div>
+
                 {/* Search Bar */}
                 <div className="po-wa-search-box">
                   <input
                     type="text"
-                    placeholder="Search customer name or phone…"
+                    placeholder={
+                      activeTab === 'customers'
+                        ? 'Search customer name or phone…'
+                        : 'Search staff name, role, or phone…'
+                    }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -273,39 +406,53 @@ export default function PoolOrchestratorWhatsAppChat() {
                 {loadingConversations ? (
                   <div className="po-wa-loading">
                     <span className="po-wa-spinner" />
-                    <p>Loading customer conversations…</p>
+                    <p>Loading {activeTab === 'customers' ? 'customer' : 'staff'} conversations…</p>
                   </div>
-                ) : filteredConversations.length === 0 ? (
+                ) : filteredList.length === 0 ? (
                   <div className="po-wa-empty">
                     <div className="po-wa-empty-icon">
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
+                      {activeTab === 'customers' ? (
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                      ) : (
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                        </svg>
+                      )}
                     </div>
-                    <h4>No Customer Inquiries Yet</h4>
+                    <h4>{activeTab === 'customers' ? 'No Customer Inquiries Yet' : 'No Staff Messages Found'}</h4>
                     <p>
-                      When bathers send a WhatsApp message to <strong>+94 76 579 0015</strong>, their chat will automatically appear here in real-time.
+                      {activeTab === 'customers'
+                        ? 'When public visitors message the pool WhatsApp number (+94 76 579 0015), their inquiries will appear here.'
+                        : 'Operational duty shift dispatches and staff WhatsApp reply logs will appear here.'}
                     </p>
                   </div>
                 ) : (
                   <div className="po-wa-conversation-list">
-                    {filteredConversations.map((item) => (
+                    {filteredList.map((item) => (
                       <div
                         key={item.sender_phone}
-                        className="po-wa-conversation-item"
-                        onClick={() => handleSelectCustomer(item)}
+                        className={`po-wa-conversation-item ${item.is_staff ? 'is-staff' : 'is-customer'}`}
+                        onClick={() => handleSelectContact(item)}
                       >
-                        <div className="po-wa-item-avatar">
+                        <div className={`po-wa-item-avatar ${item.is_staff ? 'staff' : 'customer'}`}>
                           {(item.customer_name || 'C').charAt(0).toUpperCase()}
                         </div>
                         <div className="po-wa-item-content">
                           <div className="po-wa-item-top">
-                            <span className="po-wa-item-name">{item.customer_name || 'Customer'}</span>
+                            <span className="po-wa-item-name">
+                              {item.customer_name || 'Contact'}
+                              {item.is_staff && item.staff_role && (
+                                <span className="po-wa-item-role-badge">{item.staff_role}</span>
+                              )}
+                            </span>
                             <span className="po-wa-item-time">{formatTime(item.last_activity)}</span>
                           </div>
                           <div className="po-wa-item-bottom">
-                            <span className="po-wa-item-phone">+{item.sender_phone}</span>
-                            <span className="po-wa-item-preview">
+                            <span className="po-wa-item-phone">{item.phone_display || `+${item.sender_phone}`}</span>
+                            <span className="po-wa-item-preview" title={item.last_message}>
                               {item.last_message || 'Active conversation'}
                             </span>
                           </div>
@@ -332,15 +479,20 @@ export default function PoolOrchestratorWhatsAppChat() {
                   ) : messages.length === 0 ? (
                     <div className="po-wa-empty">
                       <p>No messages recorded for this contact yet.</p>
+                      {selectedContact.is_staff && (
+                        <p style={{ fontSize: '11px', color: '#64748b' }}>
+                          Type a message below or click a template chip to send a direct WhatsApp briefing to {selectedContact.customer_name}.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     messages.map((m) => (
                       <div key={m.id || m.wa_message_id} className="po-wa-message-pair">
-                        {/* Customer Incoming Bubble */}
+                        {/* Customer / Staff Incoming Bubble */}
                         {m.incoming_text && (
                           <div className="po-wa-bubble inbound">
                             <div className="po-wa-sender-label">
-                              {selectedCustomer.customer_name || 'Customer'}
+                              {selectedContact.customer_name || 'Contact'}
                             </div>
                             <div className="po-wa-bubble-text">{m.incoming_text}</div>
                             <div className="po-wa-bubble-time">
@@ -376,40 +528,71 @@ export default function PoolOrchestratorWhatsAppChat() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Quick Canned Response Chips */}
+                {/* Quick Canned Response Chips (Tailored for Customer vs Staff) */}
                 <div className="po-wa-chips-row">
-                  <button
-                    type="button"
-                    className="po-wa-chip"
-                    onClick={() => handleSendMessage('1')}
-                    title="Send Current Condition"
-                  >
-                    1. Current Condition
-                  </button>
-                  <button
-                    type="button"
-                    className="po-wa-chip"
-                    onClick={() => handleSendMessage('2')}
-                    title="Send Future Demand"
-                  >
-                    2. Future Demand
-                  </button>
-                  <button
-                    type="button"
-                    className="po-wa-chip"
-                    onClick={() => handleSendMessage('3')}
-                    title="Send Manager Contact"
-                  >
-                    3. Contact Manager
-                  </button>
-                  <button
-                    type="button"
-                    className="po-wa-chip"
-                    onClick={() => handleSendMessage('0')}
-                    title="Send Main Menu"
-                  >
-                    Main Menu
-                  </button>
+                  {selectedContact.is_staff ? (
+                    <>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('Please report to the pool operations desk 10 minutes prior to your scheduled shift.')}
+                        title="Send Duty Arrival Reminder"
+                      >
+                        Duty Reminder
+                      </button>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('Your duty shift attendance has been confirmed and updated in the daily operations roster.')}
+                        title="Send Shift Confirmation"
+                      >
+                        Shift Confirmed
+                      </button>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('Please confirm your availability for today’s scheduled operational duties.')}
+                        title="Request Availability Check"
+                      >
+                        Check Availability
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('1')}
+                        title="Send Current Condition"
+                      >
+                        1. Current Condition
+                      </button>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('2')}
+                        title="Send Future Demand"
+                      >
+                        2. Future Demand
+                      </button>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('3')}
+                        title="Send Manager Contact"
+                      >
+                        3. Contact Manager
+                      </button>
+                      <button
+                        type="button"
+                        className="po-wa-chip"
+                        onClick={() => handleSendMessage('0')}
+                        title="Send Main Menu"
+                      >
+                        Main Menu
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {sendError && (
@@ -433,7 +616,7 @@ export default function PoolOrchestratorWhatsAppChat() {
                 >
                   <input
                     type="text"
-                    placeholder={`Reply to ${selectedCustomer.customer_name || 'customer'}…`}
+                    placeholder={`Message ${selectedContact.customer_name || 'contact'}…`}
                     value={composerText}
                     onChange={(e) => setComposerText(e.target.value)}
                     disabled={sending}
