@@ -314,13 +314,18 @@ export default function PoolOrchestrator() {
 
     const mode = FILTRATION_MODES[modeKey]
     const detail = currentOccupancy !== null
-      ? `${mode.operation} · Auto-regulated for ${occ} swimmers (${tierRange})`
-      : `${mode.operation} · Auto load-based baseline circulation`
+      ? `Mode ${mode.modeNumber} · ${mode.speed} (${tierRange})`
+      : `Mode ${mode.modeNumber} · ${mode.speed} (Baseline circulation)`
+
+    const tooltip = currentOccupancy !== null
+      ? `${mode.fullName}: ${mode.speed} · ${mode.operation} (Auto-regulated for ${occ} swimmers: ${tierRange})`
+      : `${mode.fullName}: ${mode.speed} · ${mode.operation} (Baseline circulation)`
 
     return {
       ...mode,
       occupancyTierRange: tierRange,
       detailText: detail,
+      tooltipText: tooltip,
     }
   }, [currentOccupancy, lowDemandMax, modDemandMax, highDemandMax])
 
@@ -390,7 +395,6 @@ export default function PoolOrchestrator() {
           </div>
           <div className="po-heading-row">
             <h1>{facilityName}</h1>
-            <span className="po-facility-badge">ID: POOL-01</span>
           </div>
           <div className="po-clock-display" aria-label="Current pool local time in Asia/Colombo">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -594,20 +598,21 @@ export default function PoolOrchestrator() {
                   <span className="po-metric-title">Filtration Cycle</span>
                   <div
                     className={`po-metric-icon ${currentFiltrationMode.theme}`}
-                    title={`${currentFiltrationMode.fullName} (${currentFiltrationMode.speed} · ${currentFiltrationMode.operation})`}
+                    title={currentFiltrationMode.tooltipText}
                   >
                     <FiltrationModeIcon mode={currentFiltrationMode.modeNumber} size={16} />
                   </div>
                 </div>
 
                 <div className="po-metric-main">
-                  <span className="po-metric-value">{currentFiltrationMode.name}</span>
-                  <span className="po-metric-unit">
-                    Mode {currentFiltrationMode.modeNumber} · {currentFiltrationMode.speed}
+                  <span className="po-metric-value po-metric-filtration-name">
+                    {currentFiltrationMode.name}
                   </span>
                 </div>
 
-                <p className="po-metric-detail">{currentFiltrationMode.detailText}</p>
+                <p className="po-metric-detail" title={currentFiltrationMode.tooltipText}>
+                  {currentFiltrationMode.detailText}
+                </p>
               </article>
             </div>
           </section>
