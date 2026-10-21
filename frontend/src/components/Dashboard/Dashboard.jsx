@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import MotorVibration from '../motor-vibration/MotorVibration';
-import WaterLoss from '../water-loss/WaterLoss';
+import WaterLossAnalysis from '../ai-leak-evaporation/WaterLossAnalysis';
 import EnergyOptimizer from '../energy-optimizer/EnergyOptimizer';
 import ResourceOrchestrator from '../resource-orchestrator/ResourceOrchestrator';
 import SummaryView from '../summary-view/SummaryView';
@@ -31,7 +31,7 @@ export default function Dashboard({ onNavigateHome }) {
       case 'pump':
         return <MotorVibration />;
       case 'leak':
-        return <WaterLoss />;
+        return <WaterLossAnalysis />;
       case 'energy':
         return <EnergyOptimizer />;
       case 'resource':
