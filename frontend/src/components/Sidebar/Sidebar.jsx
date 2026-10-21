@@ -44,7 +44,7 @@ export default function Sidebar({ activeTab = 'summary', onTabChange, onNavigate
         {
           id: 'resource',
           title: 'Resource Orchestrator',
-          subtitle: 'XGBoost AI Planning',
+          subtitle: 'Random Forest · Demand Forecasting',
           icon: 'fa-solid fa-chart-line',
           member: 'Component 04',
         },

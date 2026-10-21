@@ -170,7 +170,7 @@ export default function LandingPage({ onNavigateToDashboard }) {
                       </div>
                     </div>
                     <div className="lp-tile-value">Optimal</div>
-                    <div className="lp-tile-desc">XGBoost Forecast Steady</div>
+                    <div className="lp-tile-desc">Random Forest Forecast Steady</div>
                   </div>
                 </div>
               </div>
@@ -293,12 +293,12 @@ export default function LandingPage({ onNavigateToDashboard }) {
               </div>
               <h3 className="lp-card-title">Predictive Resource Orchestration</h3>
               <p className="lp-card-desc">
-                XGBoost machine learning models forecasting daily bather loads, sanitization chemical dosing
-                requirements, and optimal staff allocation schedules in advance.
+                Random Forest regression models trained in Google Colab forecasting daily bather loads, filtration
+                schedules, and optimal lifeguard staffing requirements in advance.
               </p>
               <div className="lp-card-meta">
                 <span className="lp-card-tech">
-                  <i className="fa-solid fa-network-wired"></i> XGBoost ML Models
+                  <i className="fa-solid fa-network-wired"></i> Random Forest Regressor
                 </span>
                 <span>Resource Optimization</span>
               </div>
@@ -347,7 +347,7 @@ export default function LandingPage({ onNavigateToDashboard }) {
               <h3 className="lp-step-title">2. Edge-AI &amp; Cloud ML Process Data</h3>
               <p className="lp-step-desc">
                 ESP32 microcontrollers run TinyML models locally for instant offline fault detection, while
-                cloud LSTM and XGBoost algorithms execute predictive deep learning models.
+                cloud LSTM and Random Forest algorithms execute predictive machine learning models.
               </p>
               <div className="lp-step-connector">
                 <i className="fa-solid fa-arrow-right"></i>

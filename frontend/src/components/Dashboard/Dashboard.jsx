@@ -16,7 +16,7 @@ export default function Dashboard({ onNavigateHome }) {
     pump: 'Edge-AI Pump Predictive Maintenance',
     leak: 'AI Water Loss & Structural Leak Tracker',
     energy: 'Algorithmic Energy Optimization System',
-    resource: 'AI-Driven Predictive Resource Orchestrator',
+    resource: 'Predictive Resource Orchestrator',
   };
 
   // Render the unique component for each team member
