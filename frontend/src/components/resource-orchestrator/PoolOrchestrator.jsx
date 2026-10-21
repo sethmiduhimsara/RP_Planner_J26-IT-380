@@ -385,27 +385,29 @@ export default function PoolOrchestrator() {
 
   return (
     <main className="pool-orchestrator">
-      {/* ================= Compact Operations Topbar ================= */}
-      <header className="po-topbar">
-        <div className="po-title-group">
-          <div className="po-breadcrumb-row">
-            <span className="po-breadcrumb-tag">FACILITY TELEMETRY</span>
-            <span className="po-breadcrumb-sep">/</span>
-            <span className="po-breadcrumb-title">RESOURCE ORCHESTRATION</span>
+      {/* ================= Facility Operations Header ================= */}
+      <div className="po-header-card">
+        <div className="po-header-info">
+          <div className="po-header-title-row">
+            <h2>{facilityName}</h2>
           </div>
-          <div className="po-heading-row">
-            <h1>{facilityName}</h1>
-          </div>
-          <div className="po-clock-display" aria-label="Current pool local time in Asia/Colombo">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span>{currentTimeStr} (Asia/Colombo)</span>
+          <div className="po-header-meta">
+            <div className="po-clock-display" aria-label="Current pool local time in Asia/Colombo">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span>{currentTimeStr} (Asia/Colombo)</span>
+            </div>
+            <span className="po-meta-bullet" aria-hidden="true">·</span>
+            <div className="po-status">
+              <span className={`po-status-dot ${statusClass}`} />
+              <span>{statusText}</span>
+            </div>
           </div>
         </div>
 
-        <div className="po-topbar-actions">
+        <div className="po-header-actions">
           <button
             className="po-refresh-button"
             onClick={handleManualRefresh}
@@ -429,13 +431,8 @@ export default function PoolOrchestrator() {
             </svg>
             <span>{refreshing ? 'Syncing…' : 'Sync Telemetry'}</span>
           </button>
-
-          <div className="po-status">
-            <span className={`po-status-dot ${statusClass}`} />
-            <span>{statusText}</span>
-          </div>
         </div>
-      </header>
+      </div>
 
       {/* ================= Modern Segmented Navigation Pill Control ================= */}
       <nav className="po-segmented-nav" aria-label="Module Navigation">
@@ -451,7 +448,7 @@ export default function PoolOrchestrator() {
               <rect x="14" y="12" width="7" height="9" rx="1" />
               <rect x="3" y="16" width="7" height="5" rx="1" />
             </svg>
-            <span>Operational Dashboard</span>
+            <span>Operations Dashboard</span>
           </button>
           <button
             type="button"
@@ -462,7 +459,7 @@ export default function PoolOrchestrator() {
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <span>Manager Settings</span>
+            <span>Facility Policies &amp; Thresholds</span>
           </button>
         </div>
       </nav>
@@ -621,12 +618,11 @@ export default function PoolOrchestrator() {
           <section className="po-panel" aria-labelledby="forecast-heading">
             <div className="po-panel-header">
               <div>
-                <h2 id="forecast-heading">Six-Hour Swimmer Demand Forecast</h2>
+                <h2 id="forecast-heading">6-Hour Swimmer Demand Forecast</h2>
                 <p className="po-panel-subtitle">
-                  Predictive occupancy model projecting hourly bather demand in 12-hour Asia/Colombo local time
+                  Projected hourly bather load based on recent occupancy and meteorological observations
                 </p>
               </div>
-              <span className="po-badge blue">NEXT 6 HOURS</span>
             </div>
 
             {loading ? (
@@ -764,12 +760,11 @@ export default function PoolOrchestrator() {
           <section className="po-panel" aria-labelledby="plan-heading">
             <div className="po-panel-header">
               <div>
-                <h2 id="plan-heading">Operational Resource Plan (Next 6 Hours)</h2>
+                <h2 id="plan-heading">Operational Resource Plan</h2>
                 <p className="po-panel-subtitle">
-                  Time-slot-based operational resource schedule combining staffing ratios, circulation windows, and routine tasks
+                  Scheduled lifeguard staffing, filtration cycle regulation, and routine facility tasks
                 </p>
               </div>
-              <span className="po-badge green">OPERATIONAL SCHEDULE</span>
             </div>
 
             {planRows.length === 0 ? (
@@ -855,12 +850,11 @@ export default function PoolOrchestrator() {
           <section className="po-panel" aria-labelledby="actions-heading">
             <div className="po-panel-header">
               <div>
-                <h2 id="actions-heading">Prioritized Manager Action List</h2>
+                <h2 id="actions-heading">Operational Recommendations</h2>
                 <p className="po-panel-subtitle">
-                  Operational decisions and follow-ups recommended by real-time data and configured policies
+                  Supervisory actions derived from live occupancy thresholds and facility safety policies
                 </p>
               </div>
-              <span className="po-badge amber">ACTIONABLE ITEMS</span>
             </div>
 
             {managerActions.length === 0 ? (
@@ -896,12 +890,11 @@ export default function PoolOrchestrator() {
           <section className="po-panel" aria-labelledby="diag-heading">
             <div className="po-panel-header">
               <div>
-                <h2 id="diag-heading">Data Quality &amp; System Telemetry</h2>
+                <h2 id="diag-heading">System &amp; Telemetry Health</h2>
                 <p className="po-panel-subtitle">
-                  Real-time connectivity and telemetry status across backend services, Supabase PostgreSQL, and ML models
+                  Live connection status across IoT sensors, database, and inference services
                 </p>
               </div>
-              <span className="po-badge blue">SYSTEM DIAGNOSTICS</span>
             </div>
 
             <div className="po-diagnostics-grid">
@@ -931,15 +924,15 @@ export default function PoolOrchestrator() {
                 </p>
               </div>
 
-              {/* ML Model Inference */}
+              {/* Prediction Service */}
               <div className="po-diag-card">
-                <h4 className="po-diag-title">ML Inference Engine</h4>
+                <h4 className="po-diag-title">Prediction Service</h4>
                 <div className="po-diag-status">
                   <span className={`po-status-dot ${healthData?.mlService?.model_loaded ? 'online' : 'offline'}`} />
                   <span>{healthData?.mlService?.model_loaded ? 'Pipeline Active (Port 8000)' : 'Model Unavailable'}</span>
                 </div>
                 <p className="po-diag-meta">
-                  Model: {healthData?.mlService?.model_version || 'v1.0.0'} · Continuous Retrain
+                  Model: {healthData?.mlService?.model_version || 'v1.0.0'} · Auto-Retrain Enabled
                 </p>
               </div>
 
@@ -973,15 +966,6 @@ export default function PoolOrchestrator() {
         </>
       )}
 
-      {/* ================= Footer ================= */}
-      <footer className="po-footer">
-        <div>
-          <strong>Pool Resource Orchestrator</strong> · Enterprise Facility Operations &amp; Resource Planning
-        </div>
-        <div>
-          <span>Timezone: Asia/Colombo</span> · <span>12-Hour Operational Standard</span>
-        </div>
-      </footer>
 
       {/* Floating WhatsApp Customer Chat Manager Widget */}
       <PoolOrchestratorWhatsAppChat />

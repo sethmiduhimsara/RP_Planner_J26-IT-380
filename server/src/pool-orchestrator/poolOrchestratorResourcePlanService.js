@@ -209,11 +209,11 @@ class PoolOrchestratorResourcePlanService {
         actions.push({
           id: actionId++,
           title: `Roster Review for Peak Demand at ${peakRow.time12Hour}`,
-          description: `Model forecasts peak load of ~${peakRow.expectedSwimmers} swimmers (${peakRow.demandLevel} demand). Verify ${peakRow.staffing.summary} are stationed prior to the session.`,
+          description: `Forecast projects peak load of ~${peakRow.expectedSwimmers} swimmers (${peakRow.demandLevel} demand). Verify ${peakRow.staffing.summary} are stationed prior to the session.`,
           priority: 'High',
           category: 'Staff Allocation',
           timeframe: `Before ${peakRow.time12Hour}`,
-          source: 'ML Forecast Pipeline',
+          source: 'Occupancy Forecast',
           status: 'Recommended',
         });
       }

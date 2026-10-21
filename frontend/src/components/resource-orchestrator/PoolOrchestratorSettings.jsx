@@ -515,16 +515,16 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
             </div>
           </section>
 
-          {/* Section 4: Continuous Learning MLOps */}
+          {/* Section 4: Prediction Model Retraining */}
           <section className="po-settings-card">
             <div className="po-card-head">
-              <h3>Continuous Learning &amp; Automated Retraining</h3>
-              <p>Configure the observation accumulation threshold for automated Random Forest retraining:</p>
+              <h3>Prediction Model Retraining Cadence</h3>
+              <p>Set how many new observations must accumulate before the occupancy prediction model is automatically retrained:</p>
             </div>
 
             <div className="po-form-row">
               <div className="po-form-group">
-                <label htmlFor="auto_retrain_interval">Retrain Cadence (Observations):</label>
+                <label htmlFor="auto_retrain_interval">Retrain Interval (Observations):</label>
                 <input
                   id="auto_retrain_interval"
                   type="number"
@@ -536,7 +536,7 @@ export default function PoolOrchestratorSettings({ onBackToDashboard, onSettings
                   required
                 />
                 <span className="po-field-sub">
-                  Automatically retrains the ML model every time {formData.auto_retrain_interval} new hourly sensor records accumulate in Supabase.
+                  The prediction model retrains automatically after every {formData.auto_retrain_interval} new hourly sensor records are logged.
                 </span>
               </div>
             </div>
