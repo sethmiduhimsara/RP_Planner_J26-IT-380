@@ -7,7 +7,7 @@ require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mqtt = require('mqtt'); // <-- Added MQTT library for Umi's live stream
+const mqtt = require('mqtt');
 
 // energy-optimization
 const { checkHeatingOptimization } = require('./src/energy-optimization/optimizationController');
@@ -27,18 +27,16 @@ app.use(express.urlencoded({ extended: true }));
 // Component Mounts - Pool Orchestrator
 app.use('/api/pool-orchestrator', poolOrchestratorRouter);
 
-// 🌍 UMI'S LIVE HARDWARE DATA STREAM 🌍
+// UMI'S LIVE HARDWARE DATA STREAM
 const umiMqtt = mqtt.connect('mqtt://broker.hivemq.com:1883');
 let liveSensorData = { ambientTemp: 0, humidity: 0, currentPoolTemp: 0 };
-let hardwareControlMode = 'AUTO'; // Tracks 'AUTO', 'ON', or 'OFF'
+let hardwareControlMode = 'AUTO'; // 'AUTO', 'ON', or 'OFF'
 
-// Listen to a custom topic just for Umi's UI!
 umiMqtt.on('connect', () => {
-    console.log("[Express] Umi's Live Hardware MQTT Connected to Cloud! ☁️");
-    umiMqtt.subscribe('ecopool/umi/sensors'); 
+    console.log("[Express] Umi's Live Hardware MQTT Connected to Cloud!");
+    umiMqtt.subscribe('ecopool/umi/sensors');
 });
 
-// Update the variables the millisecond the ESP32 sends a new reading
 umiMqtt.on('message', (topic, message) => {
     try {
         const data = JSON.parse(message.toString());
@@ -53,43 +51,48 @@ app.get('/api/energy-optimization/live-sensors', (req, res) => {
     res.json({ ...liveSensorData, hardwareControlMode });
 });
 
-// 🌍 MANUAL HARDWARE OVERRIDE ENDPOINT 🌍
+// MANUAL & AUTO-STOP HARDWARE OVERRIDE ENDPOINT
 app.post('/api/energy-optimization/override', (req, res) => {
     try {
-        const { action } = req.body; // 'ON', 'OFF', or 'AUTO'
-        hardwareControlMode = action;
+        const { action, keepAutoMode } = req.body; // 'ON', 'OFF', or 'AUTO'
+        if (!keepAutoMode) {
+            hardwareControlMode = action;
+        }
         umiMqtt.publish('ecopool/umi/control', action);
-        console.log(`[Express] Umi Hardware Intercept: Mode set to [${action}]`);
+        console.log(`[Express] Umi Hardware Command Sent to ESP32: [${action}] (Mode: ${hardwareControlMode})`);
         res.json({ success: true, command: action, hardwareControlMode });
     } catch (error) {
         res.status(500).json({ error: "Failed to intercept hardware" });
     }
 });
 
-// 🌍 ENERGY OPTIMIZATION API ENDPOINT (UPDATED FOR AUTO 1H SEGMENTS) 🌍
+// ENERGY OPTIMIZATION API ENDPOINT
 app.post('/api/energy-optimization/check', async (req, res) => {
     try {
-        const { ambientTemp, humidity, currentPoolTemp } = req.body;
-        const optimizationResult = await checkHeatingOptimization(ambientTemp, humidity, currentPoolTemp);
-        
-        // Automatically command the ESP32 OLED & Relay unless manually locked to Force ON/OFF
+        const { ambientTemp, humidity, currentPoolTemp, isWaitingFor33Drop } = req.body;
+        const optimizationResult = await checkHeatingOptimization(
+            ambientTemp,
+            humidity,
+            currentPoolTemp,
+            isWaitingFor33Drop
+        );
+
+        // Automatically command the ESP32 Relay & OLED when in AUTO mode
         if (hardwareControlMode === 'AUTO') {
             if (optimizationResult.action === 'TURN_OFF_HEATER') {
                 umiMqtt.publish('ecopool/umi/control', 'OFF');
-                console.log("[Express] 🛑 AI Auto-Shutoff Command ('OFF') Sent to ESP32 OLED & Relay!");
+                console.log("[Express] AI Auto-Shutoff ('OFF' for 20 mins) Sent to ESP32!");
             } else if (optimizationResult.action === 'KEEP_HEATER_ON') {
                 umiMqtt.publish('ecopool/umi/control', 'ON');
-                console.log("[Express] 🔥 AI Active-Heating Command ('ON') Sent to ESP32 OLED & Relay!");
+                console.log("[Express] AI Active-Heating ('ON') Sent to ESP32!");
             }
-        } else {
-            console.log(`[Express] ⚠️ Hardware is in Manual Override [${hardwareControlMode}] — skipping auto MQTT publish.`);
         }
-        
+
         res.status(200).json({
             ...optimizationResult,
             hardwareControlMode
         });
-        
+
     } catch (error) {
         console.error("Endpoint Error:", error);
         res.status(500).json({ error: "AI Engine Offline" });
@@ -125,7 +128,6 @@ const server = app.listen(PORT, () => {
   console.log(`[Express] Umi's AI Engine mounted at http://localhost:${PORT}/api/energy-optimization/check`);
   console.log(`[Express] Umi's Live Data mounted at http://localhost:${PORT}/api/energy-optimization/live-sensors`);
 
-  // Start background MQTT subscriber for ESP32 sensor telemetry
   try {
     defaultMqttService.start();
   } catch (mqttErr) {
