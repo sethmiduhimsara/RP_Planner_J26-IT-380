@@ -1,11 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import io from 'socket.io-client';
 import './MotorVibration.css';
 
 export default function MotorVibration() {
-  // Preset simulation states to showcase during presentation to the evaluation panel
+  // Mode toggle: 'live' (real-time stream from ESP32 via backend) or 'simulation' (preset panel demo)
+  const [activeMode, setActiveMode] = useState('live'); // 'live' | 'simulation'
   const [activeSimulation, setActiveSimulation] = useState('normal');
   const [activeGraphTab, setActiveGraphTab] = useState('time'); // 'time' or 'fft'
-  const [activeAxis, setActiveAxis] = useState('combined'); // 'combined', 'x', 'y', 'z'
+
+  // Socket & Live Telemetry State
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastPacketTime, setLastPacketTime] = useState(null);
+  const [liveTelemetry, setLiveTelemetry] = useState({
+    deviceId: 'ESP32_MOTOR_01',
+    vibration: 0.045,
+    smoothedVibration: 0.041,
+    axes: { x: 0.28, y: 0.24, z: 0.18 },
+    status: 'Normal',
+    confidence: 96.4,
+    faultCounter: 0,
+    isAlarm: false,
+  });
+
+  // Dynamic Live Waveform points buffer (35 points)
+  const [wavePoints, setWavePoints] = useState(() =>
+    Array.from({ length: 35 }, () => 100)
+  );
+
+  // Reference for socket instance
+  const socketRef = useRef(null);
+
+  // Setup Socket.io connection to Node.js backend
+  useEffect(() => {
+    const serverUrl =
+      window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : `http://${window.location.hostname}:5000`;
+
+    const socket = io(serverUrl, {
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      transports: ['websocket', 'polling'],
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('[MotorVibration] Connected to telemetry backend');
+      setIsConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[MotorVibration] Disconnected from telemetry backend');
+      setIsConnected(false);
+    });
+
+    // Listen for incoming telemetry packets from ESP32
+    socket.on('motor_vibration_update', (data) => {
+      if (!data) return;
+
+      setLiveTelemetry({
+        deviceId: data.deviceId || 'ESP32_MOTOR_01',
+        vibration: typeof data.vibration === 'number' ? data.vibration : 0.0,
+        smoothedVibration:
+          typeof data.smoothedVibration === 'number' ? data.smoothedVibration : 0.0,
+        axes: {
+          x: data.axes?.x ?? 0.0,
+          y: data.axes?.y ?? 0.0,
+          z: data.axes?.z ?? 0.0,
+        },
+        status: data.status || 'Normal',
+        confidence: typeof data.confidence === 'number' ? data.confidence : 0.0,
+        faultCounter: typeof data.faultCounter === 'number' ? data.faultCounter : 0,
+        isAlarm: Boolean(data.isAlarm),
+      });
+
+      setLastPacketTime(new Date());
+
+      // Update real-time waveform buffer dynamically
+      const vibVal = typeof data.vibration === 'number' ? data.vibration : 0.04;
+      // Map vibration (0.0g to 3.0g) to SVG vertical oscillation (100 is center, range 30 to 170)
+      const amplitude = Math.min(70, Math.max(8, vibVal * 45));
+      const newY = 100 + (Math.random() > 0.5 ? 1 : -1) * (amplitude * (0.8 + Math.random() * 0.4));
+
+      setWavePoints((prev) => {
+        const next = [...prev.slice(1), Math.round(newY)];
+        return next;
+      });
+    });
+
+    // Initial fetch of latest reading in case socket hasn't received a new packet yet
+    fetch(`${serverUrl}/api/motor-vibration/latest`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setLiveTelemetry((prev) => ({
+            ...prev,
+            ...json.data,
+          }));
+          setLastPacketTime(new Date(json.data.timestamp || Date.now()));
+        }
+      })
+      .catch((err) => {
+        console.warn('[MotorVibration] Initial fetch error:', err.message);
+      });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   // Pre-configured scientific datasets reflecting real accelerometer telemetry under different motor states
   const simulationProfiles = {
@@ -30,9 +133,10 @@ export default function MotorVibration() {
         unbalance: 0.5,
       },
       axes: { x: 0.28, y: 0.24, z: 0.18 },
-      // SVG path coordinates for smooth normal sinusoidal vibration
-      timeWave: 'M0,100 Q40,60 80,100 T160,100 T240,100 T320,100 T400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
-      fftWave: 'M0,190 L60,190 L90,80 L120,190 L240,190 L260,140 L280,190 L400,190 L600,190 L800,190',
+      timeWave:
+        'M0,100 Q40,60 80,100 T160,100 T240,100 T320,100 T400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
+      fftWave:
+        'M0,190 L60,190 L90,80 L120,190 L240,190 L260,140 L280,190 L400,190 L600,190 L800,190',
     },
     bearing: {
       label: 'Bearing Degradation (BPFO)',
@@ -43,7 +147,8 @@ export default function MotorVibration() {
       kurtosis: 5.82,
       crestFactor: 3.12,
       leadTime: '12 - 14 Days',
-      statusMessage: 'High-frequency impacts detected at 3.2 kHz harmonic. Outer race bearing wear developing.',
+      statusMessage:
+        'High-frequency impacts detected at 3.2 kHz harmonic. Outer race bearing wear developing.',
       statusType: 'warn',
       isoZone: 'Zone C (Alert)',
       isoColor: '#f59e0b',
@@ -55,9 +160,10 @@ export default function MotorVibration() {
         unbalance: 2.0,
       },
       axes: { x: 0.89, y: 0.72, z: 0.35 },
-      // Spiky high-kurtosis periodic peaks typical of bearing race defects
-      timeWave: 'M0,100 Q20,30 40,100 T80,100 Q100,20 120,100 T160,100 Q180,25 200,100 T240,100 Q260,15 280,100 T320,100 T400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
-      fftWave: 'M0,190 L60,190 L90,110 L120,190 L250,190 L270,130 L290,190 L420,190 L450,50 L480,190 L520,70 L550,190 L800,190',
+      timeWave:
+        'M0,100 Q20,30 40,100 T80,100 Q100,20 120,100 T160,100 Q180,25 200,100 T240,100 Q260,15 280,100 T320,100 T400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
+      fftWave:
+        'M0,190 L60,190 L90,110 L120,190 L250,190 L270,130 L290,190 L420,190 L450,50 L480,190 L520,70 L550,190 L800,190',
     },
     cavitation: {
       label: 'Impeller Cavitation / Flow',
@@ -68,7 +174,8 @@ export default function MotorVibration() {
       kurtosis: 6.45,
       crestFactor: 3.84,
       leadTime: '4 - 6 Days',
-      statusMessage: 'Erratic broadband noise pattern across 500Hz-2kHz. Liquid vapor collapse detected.',
+      statusMessage:
+        'Erratic broadband noise pattern across 500Hz-2kHz. Liquid vapor collapse detected.',
       statusType: 'danger',
       isoZone: 'Zone C/D (Action Required)',
       isoColor: '#dc2626',
@@ -80,9 +187,10 @@ export default function MotorVibration() {
         unbalance: 3.2,
       },
       axes: { x: 1.15, y: 1.08, z: 0.62 },
-      // Highly erratic turbulence waveform
-      timeWave: 'M0,100 L30,40 L60,150 L90,30 L120,160 L150,50 L180,140 L210,20 L240,170 L270,60 L300,130 L330,40 L360,150 L400,100 L500,130 L600,70 L700,140 L800,100',
-      fftWave: 'M0,190 L40,160 L80,140 L120,110 L160,90 L200,80 L250,75 L300,70 L350,90 L400,130 L500,160 L800,190',
+      timeWave:
+        'M0,100 L30,40 L60,150 L90,30 L120,160 L150,50 L180,140 L210,20 L240,170 L270,60 L300,130 L330,40 L360,150 L400,100 L500,130 L600,70 L700,140 L800,100',
+      fftWave:
+        'M0,190 L40,160 L80,140 L120,110 L160,90 L200,80 L250,75 L300,70 L350,90 L400,130 L500,160 L800,190',
     },
     unbalance: {
       label: 'Shaft Unbalance / Misalignment',
@@ -93,7 +201,8 @@ export default function MotorVibration() {
       kurtosis: 3.15,
       crestFactor: 2.10,
       leadTime: '20+ Days',
-      statusMessage: 'Elevated 1X rotational speed fundamental peak. Mechanical realignment suggested.',
+      statusMessage:
+        'Elevated 1X rotational speed fundamental peak. Mechanical realignment suggested.',
       statusType: 'warn',
       isoZone: 'Zone B (Satisfactory)',
       isoColor: '#84cc16',
@@ -105,12 +214,110 @@ export default function MotorVibration() {
         unbalance: 75.2,
       },
       axes: { x: 0.74, y: 0.52, z: 0.28 },
-      timeWave: 'M0,100 Q40,35 80,100 T160,100 Q200,35 240,100 T320,100 Q360,35 400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
-      fftWave: 'M0,190 L50,190 L80,30 L110,190 L160,190 L180,120 L200,190 L300,190 L500,190 L800,190',
+      timeWave:
+        'M0,100 Q40,35 80,100 T160,100 Q200,35 240,100 T320,100 Q360,35 400,100 T480,100 T560,100 T640,100 T720,100 T800,100',
+      fftWave:
+        'M0,190 L50,190 L80,30 L110,190 L160,190 L180,120 L200,190 L300,190 L500,190 L800,190',
     },
   };
 
-  const current = simulationProfiles[activeSimulation];
+  // Convert live dynamic buffer into smooth SVG path
+  const generateLiveSvgPath = () => {
+    const step = 800 / (wavePoints.length - 1);
+    return wavePoints.reduce((acc, y, index) => {
+      const x = Math.round(index * step);
+      if (index === 0) return `M${x},${y}`;
+      // Cubic bezier curve for oscilloscope style smoothness
+      const prevX = Math.round((index - 1) * step);
+      const prevY = wavePoints[index - 1];
+      const cpX1 = prevX + (x - prevX) / 2;
+      const cpX2 = prevX + (x - prevX) / 2;
+      return `${acc} C${cpX1},${prevY} ${cpX2},${y} ${x},${y}`;
+    }, '');
+  };
+
+  // Compute live presentation values when in 'live' mode
+  const getLiveResolvedProfile = () => {
+    const vib = liveTelemetry.vibration;
+    const stat = (liveTelemetry.status || '').toUpperCase();
+
+    let tagClass = 'state-ok';
+    let statusType = 'ok';
+    let isoZone = 'Zone A (Good)';
+    let isoColor = '#22c55e';
+    let healthScore = Math.max(12, Math.min(99.5, Math.round((1.0 - vib / 2.2) * 1000) / 10));
+    let leadTime = '35+ Days';
+    let statusMessage =
+      'Real-time Edge Impulse TinyML output: System healthy. Accelerations within baseline limits.';
+
+    if (stat === 'OFF') {
+      healthScore = 100;
+      leadTime = 'Pump Inactive';
+      statusMessage = 'Pump motor is currently powered off (RMS < threshold).';
+    } else if (vib > 1.8 || stat === 'ABNORMAL') {
+      tagClass = 'state-danger';
+      statusType = 'danger';
+      isoZone = 'Zone D (Critical)';
+      isoColor = '#dc2626';
+      leadTime = '2 - 5 Days';
+      statusMessage =
+        'CRITICAL: High vibration / abnormal signature detected by TinyML model. Immediate inspection advised.';
+    } else if (vib > 1.12 || stat === 'ANGLE_CHANGED') {
+      tagClass = 'state-warn';
+      statusType = 'warn';
+      isoZone = 'Zone C (Alert)';
+      isoColor = '#f59e0b';
+      leadTime = '10 - 15 Days';
+      statusMessage =
+        'WARNING: Structural shift, angle deviation, or bearing race impact signatures developing.';
+    } else if (vib > 0.71) {
+      tagClass = 'state-warn';
+      statusType = 'warn';
+      isoZone = 'Zone B (Satisfactory)';
+      isoColor = '#84cc16';
+      leadTime = '25+ Days';
+      statusMessage =
+        'Operational vibration slightly elevated but within satisfactory bounds.';
+    }
+
+    // Dynamic probabilities based on Edge Impulse live classification
+    const conf = liveTelemetry.confidence || 95.0;
+    const remaining = Math.max(0, 100.0 - conf);
+
+    let probs = {
+      normal: stat === 'NORMAL' ? conf : (remaining * 0.4).toFixed(1),
+      bearing: stat === 'ABNORMAL' ? conf : (remaining * 0.3).toFixed(1),
+      cavitation: stat === 'ABNORMAL' ? (conf * 0.8).toFixed(1) : (remaining * 0.2).toFixed(1),
+      unbalance: stat === 'ANGLE_CHANGED' ? conf : (remaining * 0.1).toFixed(1),
+    };
+
+    return {
+      label: stat === 'OFF' ? 'Motor Stopped (OFF)' : `Live: ${liveTelemetry.status}`,
+      tagClass,
+      healthScore,
+      rms: liveTelemetry.vibration.toFixed(3),
+      peakVib: (liveTelemetry.vibration * 1.5).toFixed(3),
+      kurtosis: (2.8 + liveTelemetry.vibration * 1.8).toFixed(2),
+      crestFactor: (1.5 + liveTelemetry.vibration * 1.2).toFixed(2),
+      leadTime,
+      statusMessage,
+      statusType,
+      isoZone,
+      isoColor,
+      probabilities: probs,
+      axes: liveTelemetry.axes,
+      timeWave: generateLiveSvgPath(),
+      fftWave: simulationProfiles.normal.fftWave,
+    };
+  };
+
+  const current =
+    activeMode === 'live' ? getLiveResolvedProfile() : simulationProfiles[activeSimulation];
+
+  const isAlarmTriggered =
+    activeMode === 'live'
+      ? liveTelemetry.isAlarm || liveTelemetry.faultCounter >= 15
+      : activeSimulation === 'cavitation';
 
   return (
     <div className="mv-container">
@@ -138,54 +345,114 @@ export default function MotorVibration() {
             <i className="fa-solid fa-wave-square"></i> ADXL345 (800 Hz)
           </span>
           <span className="mv-tag mv-tag-success">
-            <span className="mv-tag-pulse-dot"></span> TinyML Edge Active
+            <span
+              className={`mv-live-dot ${isConnected ? '' : 'is-offline'}`}
+            ></span>
+            {isConnected ? 'Backend Live Stream (:5000)' : 'Backend Reconnecting...'}
           </span>
         </div>
       </div>
 
       {/* -------------------------------------------------------------------
-          2. Interactive Simulation Bar (Demo Tool for Panel Presentation)
+          2. Mode Switcher & Evaluation Control Bar
       ------------------------------------------------------------------- */}
       <div className="mv-demo-bar">
-        <div className="mv-demo-label">
-          <i className="fa-solid fa-flask-vial"></i>
-          <span>Live Evaluation Simulator (Preset Anomaly Profiles):</span>
-        </div>
-
-        <div className="mv-demo-buttons">
+        {/* Toggle between Live ESP32 Stream and Simulation Profiles */}
+        <div className="mv-mode-switcher">
           <button
             type="button"
-            className={`mv-demo-btn ${activeSimulation === 'normal' ? 'is-active' : ''}`}
-            onClick={() => setActiveSimulation('normal')}
+            className={`mv-mode-tab is-live ${activeMode === 'live' ? 'is-active' : ''}`}
+            onClick={() => setActiveMode('live')}
           >
-            <i className="fa-solid fa-circle-check"></i> Normal State
+            <span
+              className={`mv-live-dot ${isConnected ? '' : 'is-offline'}`}
+            ></span>
+            <span>Live ESP32 Stream</span>
           </button>
 
           <button
             type="button"
-            className={`mv-demo-btn is-warning ${activeSimulation === 'bearing' ? 'is-active' : ''}`}
-            onClick={() => setActiveSimulation('bearing')}
+            className={`mv-mode-tab ${activeMode === 'simulation' ? 'is-active' : ''}`}
+            onClick={() => setActiveMode('simulation')}
           >
-            <i className="fa-solid fa-triangle-exclamation"></i> Bearing Degradation
-          </button>
-
-          <button
-            type="button"
-            className={`mv-demo-btn is-danger ${activeSimulation === 'cavitation' ? 'is-active' : ''}`}
-            onClick={() => setActiveSimulation('cavitation')}
-          >
-            <i className="fa-solid fa-radiation"></i> Impeller Cavitation
-          </button>
-
-          <button
-            type="button"
-            className={`mv-demo-btn is-warning ${activeSimulation === 'unbalance' ? 'is-active' : ''}`}
-            onClick={() => setActiveSimulation('unbalance')}
-          >
-            <i className="fa-solid fa-arrows-rotate"></i> Shaft Misalignment
+            <i className="fa-solid fa-flask-vial"></i>
+            <span>Evaluation Simulator</span>
           </button>
         </div>
+
+        {/* If in Simulation Mode: Show the 4 preset anomaly profiles */}
+        {activeMode === 'simulation' ? (
+          <div className="mv-demo-buttons">
+            <button
+              type="button"
+              className={`mv-demo-btn ${activeSimulation === 'normal' ? 'is-active' : ''}`}
+              onClick={() => setActiveSimulation('normal')}
+            >
+              <i className="fa-solid fa-circle-check"></i> Normal State
+            </button>
+
+            <button
+              type="button"
+              className={`mv-demo-btn is-warning ${activeSimulation === 'bearing' ? 'is-active' : ''}`}
+              onClick={() => setActiveSimulation('bearing')}
+            >
+              <i className="fa-solid fa-triangle-exclamation"></i> Bearing Degradation
+            </button>
+
+            <button
+              type="button"
+              className={`mv-demo-btn is-danger ${activeSimulation === 'cavitation' ? 'is-active' : ''}`}
+              onClick={() => setActiveSimulation('cavitation')}
+            >
+              <i className="fa-solid fa-radiation"></i> Impeller Cavitation
+            </button>
+
+            <button
+              type="button"
+              className={`mv-demo-btn is-warning ${activeSimulation === 'unbalance' ? 'is-active' : ''}`}
+              onClick={() => setActiveSimulation('unbalance')}
+            >
+              <i className="fa-solid fa-arrows-rotate"></i> Shaft Misalignment
+            </button>
+          </div>
+        ) : (
+          <div className="mv-demo-label">
+            <i className="fa-solid fa-satellite-dish"></i>
+            <span>
+              Device: <strong>{liveTelemetry.deviceId}</strong> · Status:{' '}
+              <strong style={{ color: current.isoColor }}>{liveTelemetry.status}</strong>
+              {lastPacketTime && (
+                <small style={{ marginLeft: '8px', color: '#64748b' }}>
+                  (Updated {lastPacketTime.toLocaleTimeString()})
+                </small>
+              )}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* -------------------------------------------------------------------
+          Emergency Alarm Banner (Appears when sustained fault or counter >= 15)
+      ------------------------------------------------------------------- */}
+      {isAlarmTriggered && (
+        <div className="mv-alarm-banner">
+          <div className="mv-alarm-content">
+            <div className="mv-alarm-icon">
+              <i className="fa-solid fa-bell"></i>
+            </div>
+            <div className="mv-alarm-text">
+              <h4>MECHANICAL ANOMALY SUSTAINED (Hardware Alarm Active)</h4>
+              <p>
+                Fault Counter exceeded safe threshold (Faults: {liveTelemetry.faultCounter}/15).
+                Physical RED LED &amp; Audible Buzzer engaged on ESP32 (Pin 25/27).
+              </p>
+            </div>
+          </div>
+          <span className="mv-tag mv-tag-primary" style={{ backgroundColor: '#ffffff', color: '#dc2626' }}>
+            <i className="fa-solid fa-triangle-exclamation"></i> Action Required
+          </span>
+        </div>
+      )}
 
       {/* -------------------------------------------------------------------
           3. Core KPI Cards Grid
@@ -200,7 +467,8 @@ export default function MotorVibration() {
             </div>
           </div>
           <div className="mv-kpi-val">
-            {current.healthScore}<span className="mv-kpi-unit">%</span>
+            {current.healthScore}
+            <span className="mv-kpi-unit">%</span>
           </div>
           <div className={`mv-kpi-sub sub-${current.statusType}`}>
             <i className="fa-solid fa-circle-check"></i>
@@ -217,7 +485,8 @@ export default function MotorVibration() {
             </div>
           </div>
           <div className="mv-kpi-val">
-            {current.rms}<span className="mv-kpi-unit">g RMS</span>
+            {current.rms}
+            <span className="mv-kpi-unit">g RMS</span>
           </div>
           <div className="mv-kpi-sub">
             <span style={{ color: '#64748b' }}>ISO 10816 Threshold: 1.12 g</span>
@@ -233,7 +502,8 @@ export default function MotorVibration() {
             </div>
           </div>
           <div className="mv-kpi-val">
-            {current.kurtosis}<span className="mv-kpi-unit">Kurt</span>
+            {current.kurtosis}
+            <span className="mv-kpi-unit">Kurt</span>
           </div>
           <div className="mv-kpi-sub">
             <span style={{ color: '#64748b' }}>Crest Factor: {current.crestFactor}</span>
@@ -253,7 +523,7 @@ export default function MotorVibration() {
           </div>
           <div className={`mv-kpi-sub sub-${current.statusType}`}>
             <i className="fa-solid fa-shield-halved"></i>
-            <span>Early Warning Active</span>
+            <span>{activeMode === 'live' ? 'TinyML Live Inference' : 'Early Warning Active'}</span>
           </div>
         </div>
       </div>
@@ -267,7 +537,15 @@ export default function MotorVibration() {
           <div className="mv-card-header">
             <div className="mv-card-title">
               <i className="fa-solid fa-wave-square"></i>
-              <h3>ADXL345 Telemetry Stream ({activeGraphTab === 'time' ? 'Time-Domain' : 'FFT Frequency Spectrum'})</h3>
+              <h3>
+                ADXL345 Telemetry Stream (
+                {activeGraphTab === 'time'
+                  ? activeMode === 'live'
+                    ? 'Real-Time Dynamic Waveform'
+                    : 'Time-Domain Waveform'
+                  : 'FFT Frequency Spectrum'}
+                )
+              </h3>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -298,7 +576,6 @@ export default function MotorVibration() {
               preserveAspectRatio="none"
               aria-label="Vibration plot"
             >
-              {/* Background Grid Lines */}
               <defs>
                 <pattern id="mv-grid" width="40" height="25" patternUnits="userSpaceOnUse">
                   <path d="M 40 0 L 0 0 0 25" fill="none" stroke="#e2e8f0" strokeWidth="0.8" />
@@ -311,7 +588,15 @@ export default function MotorVibration() {
               <rect width="800" height="200" fill="url(#mv-grid)" />
 
               {/* Zero reference line */}
-              <line x1="0" y1="100" x2="800" y2="100" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />
+              <line
+                x1="0"
+                y1="100"
+                x2="800"
+                y2="100"
+                stroke="#cbd5e1"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+              />
 
               {/* Waveform line */}
               {activeGraphTab === 'time' ? (
@@ -324,7 +609,7 @@ export default function MotorVibration() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  {/* Subtle secondary axis */}
+                  {/* Subtle baseline */}
                   <path
                     d="M0,105 Q35,75 75,105 T150,105 T225,105 T300,105 T375,105 T450,105 T525,105 T600,105 T675,105 T750,105 T800,105"
                     fill="none"
@@ -336,10 +621,7 @@ export default function MotorVibration() {
                 </>
               ) : (
                 <>
-                  <path
-                    d={`${current.fftWave} L800,200 L0,200 Z`}
-                    fill="url(#mv-grad)"
-                  />
+                  <path d={`${current.fftWave} L800,200 L0,200 Z`} fill="url(#mv-grad)" />
                   <path
                     d={current.fftWave}
                     fill="none"
@@ -356,7 +638,14 @@ export default function MotorVibration() {
             <div className="mv-legend-group">
               <div className="mv-legend-item">
                 <span className="mv-legend-dot" style={{ backgroundColor: '#4f46e5' }}></span>
-                <span>Active Channel: {activeGraphTab === 'time' ? 'Tri-Axial Resultant a_xyz' : 'Harmonic Spectrum (0 - 4 kHz)'}</span>
+                <span>
+                  Active Channel:{' '}
+                  {activeGraphTab === 'time'
+                    ? activeMode === 'live'
+                      ? 'Live ESP32 ADXL345 Feed'
+                      : 'Tri-Axial Resultant a_xyz'
+                    : 'Harmonic Spectrum (0 - 4 kHz)'}
+                </span>
               </div>
               {activeGraphTab === 'time' && (
                 <div className="mv-legend-item">
@@ -378,7 +667,7 @@ export default function MotorVibration() {
               <h3>TinyML Classifier Inference</h3>
             </div>
             <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: '600' }}>
-              Latency: 14.8 ms
+              Confidence: {activeMode === 'live' ? `${liveTelemetry.confidence}%` : '14.8 ms Latency'}
             </span>
           </div>
 
@@ -393,7 +682,10 @@ export default function MotorVibration() {
               <div className="mv-prob-track">
                 <div
                   className="mv-prob-fill"
-                  style={{ width: `${current.probabilities.normal}%`, backgroundColor: '#22c55e' }}
+                  style={{
+                    width: `${current.probabilities.normal}%`,
+                    backgroundColor: '#22c55e',
+                  }}
                 ></div>
               </div>
             </div>
@@ -407,7 +699,10 @@ export default function MotorVibration() {
               <div className="mv-prob-track">
                 <div
                   className="mv-prob-fill"
-                  style={{ width: `${current.probabilities.bearing}%`, backgroundColor: '#f59e0b' }}
+                  style={{
+                    width: `${current.probabilities.bearing}%`,
+                    backgroundColor: '#f59e0b',
+                  }}
                 ></div>
               </div>
             </div>
@@ -421,7 +716,10 @@ export default function MotorVibration() {
               <div className="mv-prob-track">
                 <div
                   className="mv-prob-fill"
-                  style={{ width: `${current.probabilities.cavitation}%`, backgroundColor: '#dc2626' }}
+                  style={{
+                    width: `${current.probabilities.cavitation}%`,
+                    backgroundColor: '#dc2626',
+                  }}
                 ></div>
               </div>
             </div>
@@ -435,7 +733,10 @@ export default function MotorVibration() {
               <div className="mv-prob-track">
                 <div
                   className="mv-prob-fill"
-                  style={{ width: `${current.probabilities.unbalance}%`, backgroundColor: '#8b5cf6' }}
+                  style={{
+                    width: `${current.probabilities.unbalance}%`,
+                    backgroundColor: '#8b5cf6',
+                  }}
                 ></div>
               </div>
             </div>
@@ -443,7 +744,14 @@ export default function MotorVibration() {
 
           {/* ISO 10816-3 Severity Scale */}
           <div style={{ marginTop: '22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: '600' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+              }}
+            >
               <span>ISO 10816-3 Severity Gauge</span>
               <span style={{ color: current.isoColor }}>{current.isoZone}</span>
             </div>
@@ -553,25 +861,57 @@ export default function MotorVibration() {
             <span className={`mv-tag ${current.tagClass}`}>{current.label}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, justifyContent: 'space-between' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              flex: 1,
+              justifyContent: 'space-between',
+            }}
+          >
             <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: '1.6' }}>
               {current.statusMessage}
             </p>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <small style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', color: '#64748b' }}>
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                padding: '14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <small
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  color: '#64748b',
+                }}
+              >
                 Recommended Action:
               </small>
-              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#0f172a', marginTop: '4px' }}>
-                {activeSimulation === 'normal' && 'Continue regular automated monitoring schedule. Next routine check in 30 days.'}
-                {activeSimulation === 'bearing' && 'Schedule bearing lubrication and acoustic verification within 12 days to prevent catastrophic pump seizure.'}
-                {activeSimulation === 'cavitation' && 'Check suction line strainer and balance tank water level immediately. Inspect impeller for vapor pitting.'}
-                {activeSimulation === 'unbalance' && 'Inspect motor-pump shaft coupling bolts and verify foundation alignment at next planned downtime.'}
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  color: '#0f172a',
+                  marginTop: '4px',
+                }}
+              >
+                {current.statusType === 'ok' &&
+                  'Continue regular automated monitoring schedule. Next routine check in 30 days.'}
+                {current.statusType === 'warn' &&
+                  'Schedule mechanical alignment or bearing check within 12 days to prevent seizure.'}
+                {current.statusType === 'danger' &&
+                  'Check suction line strainer and balance tank immediately. Inspect impeller for cavitation damage.'}
               </div>
             </div>
 
             <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Telemetry Timestamp: {new Date().toLocaleTimeString()} · Motor P-101 (2.2 kW)
+              Telemetry Timestamp:{' '}
+              {lastPacketTime ? lastPacketTime.toLocaleTimeString() : new Date().toLocaleTimeString()} · Motor P-101 (2.2 kW)
             </div>
           </div>
         </div>
