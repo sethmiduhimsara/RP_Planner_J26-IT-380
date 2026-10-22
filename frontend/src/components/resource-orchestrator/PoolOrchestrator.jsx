@@ -312,11 +312,33 @@ function StaffAssignmentBadges({
   // Count variant: e.g. "0 Assigned", "1 Assigned 👁️", "2 Assigned 👁️"
   if (variant === 'count') {
     if (!hasAnyStaff) {
+      if (!showButton) {
+        return (
+          <span className="po-unassigned-badge" title="No staff assigned to this task yet">
+            <span className="po-unassigned-dot" />
+            <span>0 Assigned</span>
+          </span>
+        )
+      }
       return (
-        <span className="po-unassigned-badge" title="No staff assigned to this time slot yet">
-          <span className="po-unassigned-dot" />
-          <span>0 Assigned</span>
-        </span>
+        <div className="po-staff-roster-row">
+          <span className="po-unassigned-badge" title="No staff assigned to this task yet">
+            <span className="po-unassigned-dot" />
+            <span>0 Assigned</span>
+          </span>
+          <button
+            type="button"
+            className="po-btn-assign"
+            onClick={onAssignMore}
+            title="Assign staff to this task"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Assign Staff</span>
+          </button>
+        </div>
       )
     }
 
@@ -367,15 +389,15 @@ function StaffAssignmentBadges({
         {showButton && (
           <button
             type="button"
-            className={`po-btn-assign ${hasAnyStaff ? 'compact' : ''}`}
+            className="po-btn-assign"
             onClick={onAssignMore}
-            title={hasAnyStaff ? 'Assign additional staff to this slot' : 'Assign staff to this slot'}
+            title={hasAnyStaff ? 'Assign additional staff to this task' : 'Assign staff to this task'}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>{cleanLabel}</span>
+            <span>Assign Staff</span>
           </button>
         )}
       </div>
@@ -1478,6 +1500,7 @@ export default function PoolOrchestrator() {
                               setStaffModalOpen(true)
                             }}
                             buttonLabel="Assign Staff"
+                            variant="count"
                           />
                         </div>
                       </div>

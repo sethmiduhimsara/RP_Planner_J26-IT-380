@@ -3226,7 +3226,7 @@
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   position: relative;
 }
 
