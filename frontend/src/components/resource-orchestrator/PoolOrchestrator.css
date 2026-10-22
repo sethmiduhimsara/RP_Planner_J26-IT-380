@@ -767,6 +767,112 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
+.po-plan-table th.po-col-assigned-staff,
+.po-plan-table td.po-col-assigned-staff {
+  white-space: nowrap;
+  vertical-align: middle;
+  min-width: 140px;
+}
+
+.po-plan-table th.po-col-action,
+.po-plan-table td.po-col-action {
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 120px;
+}
+
+.po-unassigned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.po-unassigned-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+
+/* Count pill styling: e.g. "1 Assigned 👁️", "2 Assigned 👁️" */
+.po-assigned-count-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.po-assigned-count-pill.confirmed {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.po-assigned-count-pill.confirmed:hover,
+.po-assigned-count-pill.confirmed.active {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+}
+
+.po-assigned-count-pill.pending {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.po-assigned-count-pill.pending:hover,
+.po-assigned-count-pill.pending.active {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.15);
+}
+
+.po-assigned-count-pill.mixed {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.po-assigned-count-pill.mixed:hover,
+.po-assigned-count-pill.mixed.active {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.po-view-eye-icon {
+  stroke: currentColor;
+  opacity: 0.75;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-left: 1px;
+}
+
+.po-assigned-count-pill:hover .po-view-eye-icon,
+.po-assigned-count-pill.active .po-view-eye-icon {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
 .po-slot-subtext {
   font-size: 10px;
   color: #64748b;
@@ -3042,13 +3148,85 @@
   color: #991b1b;
 }
 
+/* Single unified pill when multiple staff are assigned */
+.po-unified-roster-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.po-unified-roster-pill.confirmed {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.po-unified-roster-pill.confirmed:hover,
+.po-unified-roster-pill.confirmed.active {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.po-unified-roster-pill.pending {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.po-unified-roster-pill.pending:hover,
+.po-unified-roster-pill.pending.active {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.po-unified-roster-pill.mixed {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.po-unified-roster-pill.mixed:hover,
+.po-unified-roster-pill.mixed.active {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.po-staff-more-tag {
+  display: inline-block;
+  padding: 0 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.po-unified-chevron {
+  transition: transform 0.15s ease;
+  stroke: currentColor;
+  opacity: 0.75;
+}
+
+.po-unified-chevron.open {
+  transform: rotate(180deg);
+}
+
 /* Horizontal roster row to prevent vertical height bloat */
 .po-staff-roster-row {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   position: relative;
 }
 
